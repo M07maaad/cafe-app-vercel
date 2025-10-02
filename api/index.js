@@ -25,9 +25,10 @@ const authCheck = async (req, res, next) => {
 };
 
 // --- API ENDPOINTS ---
+// NOTE: The `/api` prefix is removed because Vercel handles it based on the file path (api/index.js)
 
 // Signup Endpoint
-app.post('/api/signup', async (req, res) => {
+app.post('/signup', async (req, res) => {
     const { name, studentId, password } = req.body;
     const email = `${studentId}@chilli-app.io`;
     const { data: { user, session }, error: authError } = await supabase.auth.signUp({ email, password });
@@ -45,7 +46,7 @@ app.post('/api/signup', async (req, res) => {
 });
 
 // Login Endpoint
-app.post('/api/login', async (req, res) => {
+app.post('/login', async (req, res) => {
     const { studentId, password } = req.body;
     const email = `${studentId}@chilli-app.io`;
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -56,7 +57,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get Menu Endpoint (Public)
-app.get('/api/menu', async (req, res) => {
+app.get('/menu', async (req, res) => {
     const { data, error } = await supabase.from('menu').select('*');
     if (error) {
         return res.status(500).json({ error: "Could not fetch menu." });
@@ -74,7 +75,7 @@ app.get('/api/menu', async (req, res) => {
 app.use(authCheck);
 
 // Get User Details Endpoint
-app.get('/api/user-details', async (req, res) => {
+app.get('/user-details', async (req, res) => {
     const { data: userData, error: userError } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
     const { data: walletData, error: walletError } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
     if (userError || walletError) {
@@ -84,7 +85,7 @@ app.get('/api/user-details', async (req, res) => {
 });
 
 // Get Order History Endpoint
-app.get('/api/orders', async (req, res) => {
+app.get('/orders', async (req, res) => {
     const { data, error } = await supabase.from('orders').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
     if (error) {
         return res.status(500).json({ error: "Could not fetch orders." });
@@ -93,7 +94,7 @@ app.get('/api/orders', async (req, res) => {
 });
 
 // Process Wallet Order Endpoint
-app.post('/api/process-wallet-order', async (req, res) => {
+app.post('/process-wallet-order', async (req, res) => {
     const { items, notes } = req.body;
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -116,7 +117,7 @@ app.post('/api/process-wallet-order', async (req, res) => {
 });
 
 // Start Paymob Payment Endpoint
-app.post('/api/start-paymob-payment', async (req, res) => {
+app.post('/start-paymob-payment', async (req, res) => {
     const { items } = req.body;
     const { data: user } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -165,7 +166,7 @@ app.post('/api/start-paymob-payment', async (req, res) => {
 });
 
 // Confirm Paymob Order (Webhook-style endpoint)
-app.post('/api/confirm-paymob-order', async (req, res) => {
+app.post('/confirm-paymob-order', async (req, res) => {
     const { paymobOrderId } = req.body;
     const { error } = await supabase.from('orders').update({ paymentMethod: 'Card' }).eq('id', paymobOrderId).eq('user_id', req.user.id);
     
