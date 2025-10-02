@@ -1,11 +1,7 @@
 {
   "name": "chilli-app-vercel",
   "version": "1.0.0",
-  "description": "Chilli Cafeteria app on Vercel",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "description": "Chilli Cafeteria App on Vercel",
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",
     "axios": "^1.5.1",
