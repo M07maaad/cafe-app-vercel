@@ -5,9 +5,7 @@ const axios = require('axios');
 
 const app = express();
 app.use(cors());
-app.use(express.static('public')); // This will serve your index.html
-app.use(express.json());
-
+app.use(express.json()); // Use this to parse JSON bodies
 
 // Initialize Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -31,20 +29,16 @@ const authCheck = async (req, res, next) => {
 // Signup Endpoint
 app.post('/api/signup', async (req, res) => {
     const { name, studentId, password } = req.body;
-    // Create a unique email for Supabase auth
     const email = `${studentId}@chilli-app.io`;
     const { data: { user, session }, error: authError } = await supabase.auth.signUp({ email, password });
     if (authError) {
-        // Handle cases where user might already exist in auth but not in public table
         if (authError.message.includes("User already registered")) {
             return res.status(400).json({ error: "هذا الرقم الجامعي مسجل بالفعل." });
         }
         return res.status(400).json({ error: authError.message });
     }
-    // Create a corresponding entry in the public 'users' table
     const { error: userError } = await supabase.from('users').insert({ id: user.id, name, studentId });
     if (userError) return res.status(500).json({ error: "Couldn't create user profile." });
-    // Create a wallet for the new user
     const { error: walletError } = await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
     if (walletError) return res.status(500).json({ error: "Couldn't create wallet." });
     res.status(200).json({ session, user });
@@ -67,7 +61,6 @@ app.get('/api/menu', async (req, res) => {
     if (error) {
         return res.status(500).json({ error: "Could not fetch menu." });
     }
-    // Group menu items by category
     const menuByCategory = data.reduce((acc, item) => {
         const category = item.category;
         if (!acc[category]) acc[category] = [];
@@ -143,7 +136,6 @@ app.post('/api/start-paymob-payment', async (req, res) => {
         const orderResponse = await axios.post("https://accept.paymob.com/api/ecommerce/orders", orderPayload);
         const paymobOrderId = orderResponse.data.id;
         
-        // Create a pending order in our DB
         await supabase.from('orders').insert({ id: paymobOrderId, user_id: req.user.id, items, totalPrice, paymentMethod: 'Card_Pending' });
 
         const paymentKeyPayload = {
@@ -174,7 +166,6 @@ app.post('/api/start-paymob-payment', async (req, res) => {
 
 // Confirm Paymob Order (Webhook-style endpoint)
 app.post('/api/confirm-paymob-order', async (req, res) => {
-    // This endpoint now relies on the frontend to tell it the order ID
     const { paymobOrderId } = req.body;
     const { error } = await supabase.from('orders').update({ paymentMethod: 'Card' }).eq('id', paymobOrderId).eq('user_id', req.user.id);
     
@@ -183,7 +174,6 @@ app.post('/api/confirm-paymob-order', async (req, res) => {
     }
     res.status(200).json({ status: "success", orderId: paymobOrderId });
 });
-
 
 // This must be the last part of the file
 module.exports = app;
