@@ -190,6 +190,59 @@ router.post('/update-order-status', dashboardAuthCheck, async (req, res) => {
     }
 });
 
+// --- NEW ROUTE TO REJECT AN ORDER ---
+router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
+    const { orderId, reason } = req.body;
+    if (!orderId || !reason) {
+        return res.status(400).json({ error: 'Missing orderId or reason.' });
+    }
+
+    try {
+        // Step 1: Get the order details to process refund if needed
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('user_id, totalPrice, paymentMethod')
+            .eq('id', orderId)
+            .single();
+
+        if (orderError || !order) throw new Error('Order not found.');
+
+        // Step 2: If it was a wallet payment, refund the user's balance
+        if (order.paymentMethod === 'Wallet') {
+            const { data: wallet, error: walletError } = await supabase
+                .from('wallets')
+                .select('balance')
+                .eq('user_id', order.user_id)
+                .single();
+
+            if (walletError || !wallet) throw new Error('User wallet not found for refund.');
+
+            const newBalance = parseFloat(wallet.balance) + parseFloat(order.totalPrice);
+
+            const { error: updateWalletError } = await supabase
+                .from('wallets')
+                .update({ balance: newBalance })
+                .eq('user_id', order.user_id);
+            
+            if (updateWalletError) throw new Error('Failed to refund to wallet.');
+        }
+
+        // Step 3: Update the order status to "Rejected" and add the reason
+        const { error: updateOrderError } = await supabase
+            .from('orders')
+            .update({ status: 'مرفوض', notes: `سبب الرفض: ${reason}` })
+            .eq('id', orderId);
+
+        if (updateOrderError) throw new Error('Failed to update order status to rejected.');
+
+        res.status(200).json({ success: true, message: `Order ${orderId} has been rejected.` });
+
+    } catch (error) {
+        console.error("Reject Order Error:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 module.exports = router;
 
