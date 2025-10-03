@@ -9,7 +9,11 @@ app.use(express.json());
 
 // --- The Standard and Correct Way to Initialize ---
 // This initializes the Supabase client once using the environment variables from Vercel.
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+// --- TEMPORARY DIAGNOSTIC STEP ---
+const SUPABASE_URL = "https://kzebezxjvqvqnvmdjdyw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6ZWJlenhqdnF2cW52bWRqZHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MDI5NjksImV4cCI6MjA3NDk3ODk2OX0.2lF4FqU8JPrHds67vHOVEfqcpIGic_LjuK5HTT5X8u4";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// --- END OF DIAGNOSTIC STEP ---
 
 // --- Middleware to check for a valid user token ---
 const authCheck = async (req, res, next) => {
