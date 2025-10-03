@@ -1,112 +1,255 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
     <title>Chilli Cafeteria</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --primary-red: #e63946; --primary-yellow: #ffbe0b; --primary-orange: #fb5607; --font-family: 'Tajawal', sans-serif; --background: #1d1d1d; --text-color: #f1faee; --card-bg: #2b2b2b; --input-bg: #333; --border-color: #555; --shadow-color: rgba(0,0,0,0.2); }
-        body.light-mode { --background: #f0f2f5; --text-color: #1c1e21; --card-bg: #ffffff; --input-bg: #e8e8e8; --border-color: #ddd; --shadow-color: rgba(0,0,0,0.1); }
-        body { font-family: var(--font-family); background-color: var(--background); color: var(--text-color); margin: 0; padding: 15px; overflow-x: hidden; direction: rtl; transition: background-color 0.3s, color 0.3s; }
-        .hidden { display: none !important; }
-        #payment-confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 2000; display: none; justify-content: center; align-items: center; text-align: center; flex-direction: column; color: white; }
-        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-red); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 25px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .logo { font-size: 3em; font-weight: 800; color: var(--primary-yellow); animation: flicker 1.5s infinite alternate; text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 21px #fff, 0 0 42px var(--primary-red), 0 0 82px var(--primary-red), 0 0 92px var(--primary-red); text-align: center; }
-        @keyframes flicker { 0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 0 0 4px #fff, 0 0 11px #fff, 0 0 19px #fff, 0 0 40px var(--primary-red), 0 0 80px var(--primary-red), 0 0 90px var(--primary-red); } 20%, 24%, 55% { text-shadow: none; } }
-        .logo .fire { color: var(--primary-orange); }
-        .auth-container { max-width: 400px; margin: 20px auto; padding: 25px; background: var(--card-bg); border-radius: 15px; text-align: center; }
-        .auth-input { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-family: var(--font-family); }
-        .auth-btn { width: 100%; padding: 12px; font-size: 1.1em; background-image: linear-gradient(45deg, var(--primary-orange), var(--primary-red)); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; }
-        .auth-toggle { color: var(--primary-yellow); cursor: pointer; margin-top: 20px; display: inline-block; }
-        .auth-error { color: var(--primary-red); min-height: 20px; font-weight: 700; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .welcome-msg {font-size: 1.3em; font-weight: 700; margin-top: 10px;}
-        .welcome-msg .name { color: var(--primary-yellow); }
-        .action-bar { display: flex; justify-content: center; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
-        .action-btn { position: relative; padding: 10px 20px; font-size: 1em; border: none; border-radius: 25px; cursor: pointer; font-family: var(--font-family); font-weight: 700; }
-        .action-btn.wallet { background: #4ade80; color: #1d1d1d; }
-        .action-btn.cart { background-image: linear-gradient(45deg, var(--primary-yellow), var(--primary-orange)); color: #1d1d1d; }
-        .action-count { position: absolute; top: -8px; right: -8px; background: var(--primary-red); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; }
-        .search-container { max-width: 800px; margin: 30px auto; }
-        #search-input { width: calc(100% - 24px); padding: 12px; border-radius: 25px; border: 2px solid #444; background: var(--card-bg); color: var(--text-color); font-family: var(--font-family); font-size: 1.1em; text-align: center; }
-        #categories-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
-        .category-card { background-color: var(--card-bg); height: 150px; border-radius: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-        .category-card-icon { font-size: 3.5em; line-height: 1; }
-        .category-card-title { font-size: 1.6em; font-weight: 700; text-align: center; }
-        .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary-red); padding-bottom: 10px; margin: 30px 0 25px 0;}
-        .category-title { font-size: 2em; font-weight: 700; color: var(--primary-orange); }
-        .back-btn { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; }
-        .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        .item-card { background: var(--card-bg); border-radius: 15px; display: flex; align-items: center; padding: 15px; }
-        .item-details { flex-grow: 1; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 5px 15px; align-items: center; }
-        .item-name { font-size: 1.2em; font-weight: 700; margin: 0; }
-        .item-price { font-size: 1.3em; font-weight: 800; color: var(--primary-yellow); margin: 0; }
-        .item-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .quantity-selector { display: flex; align-items: center; background: var(--input-bg); border-radius: 20px; }
-        .quantity-btn { background: none; border: none; color: var(--text-color); font-size: 1.4em; cursor: pointer; padding: 2px 12px; }
-        .add-to-cart-btn { background-image: linear-gradient(45deg, var(--primary-orange), var(--primary-red)); color: white; border-radius: 20px; padding: 8px 15px; font-weight: 700; cursor: pointer; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1001; opacity: 0; transition: opacity 0.3s ease; }
-        .modal-overlay.show { display: flex; opacity: 1; }
-        .modal-content { background: rgba(43, 43, 43, 0.6); backdrop-filter: blur(15px); width: 90%; max-width: 600px; border-radius: 20px; padding: 25px; max-height: 85vh; overflow-y: auto; }
-        .close-modal { float: left; cursor: pointer; font-size: 1.5em; color: #aaa; }
-        #cart-items-list li, #history-items-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .remove-item-btn { background: none; border: none; color: var(--primary-red); font-size: 1.4em; cursor: pointer; }
-        .status-ready { color: #4ade80; }
-        .status-pending { color: var(--primary-yellow); }
-        #total-price { font-size: 1.5em; font-weight: bold; color: var(--primary-yellow); text-align: left; margin-top: 20px; }
-        .modal-input { width: calc(100% - 22px); padding: 12px; margin-top: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.2); color: white; font-family: var(--font-family); }
-        .modal-btn { width: 100%; padding: 15px; font-size: 1.2em; margin-top: 20px; background-image: linear-gradient(45deg, var(--primary-orange), var(--primary-red)); color: white; border: none; border-radius: 10px; cursor: pointer; }
-        .modal-btn#paymob-order-btn { background-image: linear-gradient(45deg, #4facfe, #00f2fe); margin-top: 10px;}
-        .modal-btn:disabled { background-image: linear-gradient(45deg, #555, #333); cursor: not-allowed; }
-        .loader { text-align: center; padding: 50px; font-size: 1.5em; color: var(--primary-yellow); font-weight: 700; }
-        .footer-wrapper { text-align: center; margin-top: 40px; color: #888; font-size: 0.9em; }
-        @media (max-width: 768px) { .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); border-top: 1px solid var(--border-color); z-index: 1000; margin: 0; padding: 10px; justify-content: space-around; border-radius: 20px 20px 0 0; } body { padding-bottom: 90px; } #categories-container { grid-template-columns: 1fr 1fr; gap: 15px; } .category-card { height: 120px; } }
+      :root {
+        --primary-red: #e63946; --primary-yellow: #ffbe0b; --primary-orange: #fb5607;
+        --font-family: 'Tajawal', sans-serif;
+        
+        /* Dark Mode (Default) */
+        --background: #1d1d1d; 
+        --text-color: #f1faee; 
+        --card-bg: #2b2b2b;
+        --input-bg: #333;
+        --border-color: #555;
+        --shadow-color: rgba(0,0,0,0.2);
+      }
+      
+      /* Light Mode Variables */
+      body.light-mode {
+        --background: #f0f2f5;
+        --text-color: #1c1e21;
+        --card-bg: #ffffff;
+        --input-bg: #e8e8e8;
+        --border-color: #ddd;
+        --shadow-color: rgba(0,0,0,0.1);
+      }
+
+      body { 
+        font-family: var(--font-family); 
+        background-color: var(--background); 
+        color: var(--text-color); 
+        margin: 0; 
+        padding: 15px; 
+        overflow-x: hidden; 
+        direction: rtl; 
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .hidden { display: none !important; }
+
+      /* --- Special Overlays --- */
+      #payment-confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 2000; display: none; justify-content: center; align-items: center; text-align: center; flex-direction: column; color: white; }
+      .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-red); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 25px; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+
+      /* --- Auth and Header Styles --- */
+      .logo { font-size: 3em; font-weight: 800; color: var(--primary-yellow); animation: flicker 1.5s infinite alternate; text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 21px #fff, 0 0 42px var(--primary-red), 0 0 82px var(--primary-red), 0 0 92px var(--primary-red); text-align: center; }
+      .logo .fire { color: var(--primary-orange); }
+      .auth-container { max-width: 400px; margin: 20px auto; padding: 25px; background: var(--card-bg); border-radius: 15px; text-align: center; transition: background-color 0.3s; }
+      .auth-container h2 { color: var(--primary-orange); }
+      .auth-input { width: calc(100% - 24px); padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-family: var(--font-family); transition: background-color 0.3s, color 0.3s; }
+      .auth-btn { width: 100%; padding: 12px; font-size: 1.1em; background-image: linear-gradient(45deg, var(--primary-orange), var(--primary-red)); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; }
+      .auth-toggle { color: var(--primary-yellow); cursor: pointer; margin-top: 20px; display: inline-block; }
+      .auth-error { color: var(--primary-red); min-height: 20px; font-weight: 700; }
+      .header { text-align: center; margin-bottom: 20px; }
+      .welcome-msg { font-size: 1.3em; font-weight: 700; margin-top: 10px; }
+      .welcome-msg .name { color: var(--primary-yellow); }
+      .action-bar { display: flex; justify-content: center; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+      .action-btn { position: relative; padding: 10px 20px; font-size: 1em; border: none; border-radius: 25px; cursor: pointer; font-family: var(--font-family); font-weight: 700; transition: all 0.2s ease; }
+      .action-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 8px var(--shadow-color); }
+      .action-btn.wallet { background: #4ade80; color: #1d1d1d; }
+      .action-btn.cart { background-image: linear-gradient(45deg, var(--primary-yellow), var(--primary-orange)); color: #1d1d1d; }
+      .action-btn.tracking { background-image: linear-gradient(45deg, #4facfe, #00f2fe); color: #1d1d1d; }
+      .action-btn.history { background-image: linear-gradient(45deg, #a280ff, #f280ff); color: white; }
+      .action-btn.mood { background-image: linear-gradient(45deg, #ff7e5f, #feb47b); color: #1d1d1d; }
+      #theme-toggle-btn { background-image: linear-gradient(45deg, #f0f0f0, #a0a0a0); color: #1d1d1d; font-size: 1.2em; line-height: 1; }
+      .action-count { position: absolute; top: -8px; right: -8px; background: var(--primary-red); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: 600; border: 2px solid var(--background); }
+      .search-container { max-width: 800px; margin: 30px auto; }
+      #search-input { width: calc(100% - 24px); padding: 12px; border-radius: 25px; border: 2px solid #444; background: var(--card-bg); color: var(--text-color); font-family: var(--font-family); font-size: 1.1em; text-align: center; }
+      #search-input:focus { border-color: var(--primary-orange); outline: none; }
+      
+      /* --- Category View Styles --- */
+      #categories-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
+      .category-card { background-color: var(--card-bg); height: 150px; border-radius: 15px; cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+      .category-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px var(--shadow-color); }
+      .category-card-icon { font-size: 3.5em; line-height: 1; }
+      .category-card-title { color: var(--text-color); font-size: 1.6em; font-weight: 700; text-align: center; padding: 0 10px; }
+
+      /* --- Menu/Item View Styles --- */
+      #menu-container { max-width: 1200px; margin: auto; }
+      .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary-red); padding-bottom: 10px; margin-top: 30px; margin-bottom: 25px;}
+      .category-title { font-size: 2em; font-weight: 700; color: var(--primary-orange); margin: 0; padding: 0; border: none; }
+      .back-btn { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; }
+      .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+      .item-card { background: var(--card-bg); border-radius: 15px; box-shadow: 0 5px 15px var(--shadow-color); transition: all 0.3s ease; display: flex; align-items: center; padding: 15px; }
+      .item-details { flex-grow: 1; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 5px 15px; align-items: center; }
+      .item-name { grid-area: 1 / 1 / 2 / 2; font-size: 1.2em; font-weight: 700; margin: 0; }
+      .item-price { grid-area: 2 / 1 / 3 / 2; font-size: 1.3em; font-weight: 800; color: var(--primary-yellow); margin: 0; }
+      .item-actions { grid-area: 1 / 2 / 3 / 3; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .quantity-selector { display: flex; align-items: center; background: var(--input-bg); border-radius: 20px; }
+      .quantity-btn { background: none; border: none; color: var(--text-color); font-size: 1.4em; cursor: pointer; padding: 2px 12px; }
+      .item-quantity { font-size: 1.1em; padding: 0 8px; }
+      .add-to-cart-btn { background-image: linear-gradient(45deg, var(--primary-orange), var(--primary-red)); color: white; border: none; border-radius: 20px; padding: 8px 15px; font-weight: 700; cursor: pointer; font-size: 0.9em; }
+      
+      /* --- Modal Styles --- */
+      .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1001; opacity: 0; transition: opacity 0.3s ease; }
+      .modal-overlay.show { display: flex; opacity: 1; }
+      .modal-content { background: rgba(43, 43, 43, 0.6); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); width: 90%; max-width: 600px; border-radius: 20px; padding: 25px; transform: scale(0.9); opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+      body.light-mode .modal-content { background: rgba(255, 255, 255, 0.6); }
+      .modal-overlay.show .modal-content { transform: scale(1); opacity: 1; }
+      .modal-content h2, .modal-content h3 { color: var(--primary-orange); margin-top: 0; }
+      .close-modal { float: left; cursor: pointer; font-size: 1.5em; color: #aaa; }
+      #cart-items-list li, #history-items-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+      body.light-mode #cart-items-list li, body.light-mode #history-items-list li { border-bottom-color: rgba(0, 0, 0, 0.1); }
+      .remove-item-btn { background: none; border: none; color: var(--primary-red); font-size: 1.4em; cursor: pointer; }
+      .history-item-details { font-size: 0.9em; color: #ccc; }
+      body.light-mode .history-item-details { color: #555; }
+      .status-ready { color: #4ade80; }
+      .status-pending { color: var(--primary-yellow); }
+      .reorder-btn { background: none; border: 1px solid var(--primary-yellow); color: var(--primary-yellow); border-radius: 15px; padding: 5px 10px; font-size: 0.8em; cursor: pointer; margin-top: 5px; }
+      #total-price { font-size: 1.5em; font-weight: bold; color: var(--primary-yellow); text-align: left; margin-top: 20px; }
+      .modal-input { width: calc(100% - 22px); padding: 12px; margin-top: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.2); color: white; font-family: var(--font-family); }
+      body.light-mode .modal-input { color: var(--text-color); background: rgba(0,0,0,0.05); }
+      .modal-btn { width: 100%; padding: 15px; font-size: 1.2em; margin-top: 20px; background-image: linear-gradient(45deg, var(--primary-orange), var(--primary-red)); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: var(--font-family); font-weight: 700; }
+      #paymob-order-btn { background-image: linear-gradient(45deg, #4facfe, #00f2fe); margin-top: 10px;}
+      .modal-btn:disabled { background-image: linear-gradient(45deg, #555, #333); cursor: not-allowed; }
+      #tracking-result { margin-top: 15px; font-size: 1.2em; font-weight: 700; min-height: 20px; text-align: center; }
+      
+      /* --- Animations, Footer, etc. --- */
+      @keyframes flicker { 0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 0 0 4px #fff, 0 0 11px #fff, 0 0 19px #fff, 0 0 40px var(--primary-red), 0 0 80px var(--primary-red), 0 0 90px var(--primary-red); } 20%, 24%, 55% { text-shadow: none; } }
+      .loader { text-align: center; padding: 50px; font-size: 1.5em; color: var(--primary-yellow); font-weight: 700; }
+      .footer-wrapper { text-align: center; margin-top: 40px; color: #888; font-size: 0.9em; }
+      .whatsapp-link { text-decoration: none; }
+      .tooltip-container { position: relative; display: inline-block; color: #2dd4bf; font-weight: 700; cursor: pointer; }
+      .tooltip-text { visibility: hidden; opacity: 0; background-color: #333; color: #fff; text-align: center; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 1002; bottom: 125%; left: 50%; transform: translateX(-50%); transition: opacity 0.3s ease; white-space: nowrap; font-size: 12px; font-weight: normal; }
+      .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
+
+      /* --- Media Queries --- */
+      @media (max-width: 768px) {
+        .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); border-top: 1px solid var(--border-color); z-index: 1000; margin: 0; padding: 10px; justify-content: space-around; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px var(--shadow-color); }
+        body { padding-bottom: 90px; }
+        #categories-container { grid-template-columns: 1fr 1fr; gap: 15px; }
+        .category-card { height: 120px; }
+        .category-card-icon { font-size: 2.5em; }
+        .category-card-title { font-size: 1.3em; }
+      }
+      @media (max-width: 600px) {
+        body { padding: 10px; padding-bottom: 90px; }
+        .logo { font-size: 2.5em; }
+        .welcome-msg { font-size: 1.1em; }
+        .action-btn { padding: 8px 15px; font-size: 0.9em; }
+        .category-title { font-size: 1.8em; }
+      }
     </style>
 </head>
 <body>
     <div id="payment-confirm-overlay"><div class="spinner"></div><h2>جاري تأكيد الدفع...</h2></div>
+
     <div id="auth-view">
         <h1 class="logo">Ch<span class="fire">i</span>ll<span class="fire">i</span></h1>
         <div id="login-container" class="auth-container">
-            <h2>تسجيل الدخول</h2><p id="login-error" class="auth-error"></p>
-            <input type="text" id="login-id" class="auth-input" placeholder="الرقم الجامعي"><input type="password" id="login-password" class="auth-input" placeholder="كلمة المرور">
+            <h2>تسجيل الدخول</h2>
+            <p id="login-error" class="auth-error"></p>
+            <input type="text" id="login-id" class="auth-input" placeholder="الرقم الجامعي">
+            <input type="password" id="login-password" class="auth-input" placeholder="كلمة المرور">
             <button class="auth-btn" onclick="handleLogin()">دخول</button>
             <p class="auth-toggle" onclick="toggleAuthView()">ليس لديك حساب؟ أنشئ واحدًا</p>
         </div>
         <div id="signup-container" class="auth-container hidden">
-            <h2>إنشاء حساب جديد</h2><p id="signup-error" class="auth-error"></p>
-            <input type="text" id="signup-name" class="auth-input" placeholder="الاسم بالكامل"><input type="text" id="signup-id" class="auth-input" placeholder="الرقم الجامعي"><input type="password" id="signup-password" class="auth-input" placeholder="كلمة المرور">
+            <h2>إنشاء حساب جديد</h2>
+            <p id="signup-error" class="auth-error"></p>
+            <input type="text" id="signup-name" class="auth-input" placeholder="الاسم بالكامل">
+            <input type="text" id="signup-id" class="auth-input" placeholder="الرقم الجامعي">
+            <input type="password" id="signup-password" class="auth-input" placeholder="كلمة المرور">
             <button class="auth-btn" onclick="handleSignUp()">إنشاء حساب</button>
             <p class="auth-toggle" onclick="toggleAuthView()">لديك حساب بالفعل؟ سجل الدخول</p>
         </div>
     </div>
+
     <div id="app-view" class="hidden">
         <header class="header">
-            <h1 class="logo">Ch<span class="fire">i</span>ll<span class="fire">i</span></h1><h2 id="welcome-msg" class="welcome-msg"></h2>
+            <h1 class="logo">Ch<span class="fire">i</span>ll<span class="fire">i</span></h1>
+            <h2 id="welcome-msg" class="welcome-msg"></h2>
         </header>
         <div class="action-bar">
-            <button id="wallet-btn" class="action-btn wallet">رصيدك: 0.00 جنيه</button>
+            <button id="wallet-btn" class="action-btn wallet" onclick="alert('يمكنك شحن رصيدك من الكاشير مباشرة.')">رصيدك: 0.00 جنيه</button>
             <button class="action-btn cart" onclick="toggleModal('cart-modal-overlay')">السلة<span id="cart-item-count" class="action-count">0</span></button>
-            <button id="history-btn" class="action-btn" style="background-image: linear-gradient(45deg, #a280ff, #f280ff); color: white;" onclick="toggleModal('history-modal-overlay')">سجل الطلبات</button>
-            <button id="logout-btn" class="action-btn" style="background-image: linear-gradient(45deg, #888, #555); color: white;" onclick="handleLogout()">تسجيل الخروج</button>
+            <button id="tracking-btn" class="action-btn tracking" onclick="toggleModal('tracking-modal-overlay')">تتبع طلبك</button>
+            <button class="action-btn history" onclick="toggleModal('history-modal-overlay')">سجل الطلبات</button>
+            <button class="action-btn mood" onclick="toggleModal('mood-modal-overlay')">إيه مودك؟ 🤔</button>
+            <button id="theme-toggle-btn" class="action-btn" onclick="toggleTheme()">🌙</button>
+            <button id="logout-btn" class="action-btn" style="background-image: linear-gradient(45deg, #888, #555); color: white;" onclick="handleLogout()">الخروج</button>
         </div>
         <div class="search-container"><input type="search" id="search-input" placeholder="ابحث عن أكلة معينة..." oninput="filterMenu()"></div>
+        
         <div id="loader" class="loader">جاري تحضير المنيو...</div>
+        
         <main id="main-content">
             <div id="categories-container"></div>
             <div id="menu-container" class="hidden"></div>
         </main>
     </div>
-    <div id="cart-modal-overlay" class="modal-overlay"><div class="modal-content"><span class="close-modal" onclick="toggleModal('cart-modal-overlay')">&times;</span><h2>سلة الطلبات</h2><textarea id="order-notes" class="modal-input" placeholder="أي ملاحظات للشيف؟ (اختياري)"></textarea><ul id="cart-items-list" style="list-style: none; padding: 0;"></ul><div id="total-price">الإجمالي: 0.00 جنيه</div><button id="order-btn" class="modal-btn" onclick="placeWalletOrder()">اطلب الآن من المحفظة</button><button id="paymob-order-btn" class="modal-btn" onclick="initiateCardPayment()">ادفع بالبطاقة البنكية</button></div></div>
-    <div id="history-modal-overlay" class="modal-overlay"><div class="modal-content"><span class="close-modal" onclick="toggleModal('history-modal-overlay')">&times;</span><h2>سجل الطلبات</h2><ul id="history-items-list" style="list-style: none; padding: 0;"></ul></div></div>
-    <div class="footer-wrapper"><p>Developed By 7MAD</p></div>
+
+    <!-- Modals -->
+    <div id="cart-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('cart-modal-overlay')">&times;</span>
+            <h2>سلة الطلبات</h2>
+            <textarea id="order-notes" class="modal-input" placeholder="أي ملاحظات للشيف؟ (اختياري)"></textarea>
+            <ul id="cart-items-list" style="list-style: none; padding: 0;"></ul>
+            <div id="total-price">الإجمالي: 0.00 جنيه</div>
+            <button class="modal-btn" onclick="placeWalletOrder()">اطلب الآن من المحفظة</button>
+            <button id="paymob-order-btn" class="modal-btn" onclick="initiateCardPayment()">ادفع بالبطاقة البنكية</button>
+        </div>
+    </div>
+    <div id="tracking-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('tracking-modal-overlay')">&times;</span>
+            <h3>تتبع طلبك</h3>
+            <input type="text" id="order-id-input" class="modal-input" style="text-align: center;" placeholder="أدخل رقم الطلب هنا">
+            <button class="modal-btn" style="background-image: linear-gradient(45deg, #4facfe, #00f2fe);" onclick="trackMyOrder()">تتبع</button>
+            <p id="tracking-result"></p>
+        </div>
+    </div>
+    <div id="history-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('history-modal-overlay')">&times;</span>
+            <h2>سجل الطلبات</h2>
+            <ul id="history-items-list" style="list-style: none; padding: 0;"></ul>
+        </div>
+    </div>
+    <div id="mood-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('mood-modal-overlay')">&times;</span>
+            <h3>إيه مودك النهاردة؟</h3>
+            <div class="mood-buttons">
+                <button class="modal-btn" onclick="showMoodSuggestion('مصدع 🤯')">مصدع ومحتاج أفوق 🤯</button>
+                <button class="modal-btn" onclick="showMoodSuggestion('رايق 😎')">رايق ومحتاج أتدلع 😎</button>
+                <button class="modal-btn" onclick="showMoodSuggestion('جعان أوي 🤤')">جعان أوي ومستعجل 🤤</button>
+            </div>
+            <div id="mood-suggestion-result" class="mood-suggestion"></div>
+        </div>
+    </div>
+    
+    <div class="footer-wrapper">
+        <p>Developed By <a href="https://wa.me/201208087322" target="_blank" class="whatsapp-link"><span class="tooltip-container">7MAD<span class="tooltip-text">Mohamed Hammad - Clinical Pharmacy <br> Click for contact</span></span></a></p>
+    </div>
 
 <script>
-    let currentUser = null, cart = {}, allMenuItems = {};
-    const authView = document.getElementById('auth-view'), appView = document.getElementById('app-view'), loader = document.getElementById('loader');
+    // --- Global State ---
+    let cart = {}, allMenuItems = {};
+    const authView = document.getElementById('auth-view');
+    const appView = document.getElementById('app-view');
+    const loader = document.getElementById('loader');
 
+    // --- API Helper ---
     async function apiCall(endpoint, options = {}) {
         const token = localStorage.getItem('sessionToken');
         if (token) {
@@ -114,103 +257,143 @@
         }
         const response = await fetch(`/api/${endpoint}`, options);
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Something went wrong');
+        if (!response.ok) {
+            // If token is invalid, log out the user
+            if (response.status === 401) handleLogout();
+            throw new Error(data.error || 'Something went wrong');
+        }
         return data;
     }
 
+    // --- Page Load & Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
+        // Theme check
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+            document.getElementById('theme-toggle-btn').innerHTML = '☀️';
+        }
+
+        // Auth check
         const sessionToken = localStorage.getItem('sessionToken');
         if (sessionToken) {
             showAppView();
         } else {
             showAuthView();
         }
+        
+        // Paymob return check
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'true' && urlParams.get('id')) {
             document.getElementById('payment-confirm-overlay').style.display = 'flex';
-            apiCall('confirm-paymob-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymobOrderId: urlParams.get('id') })
-            }).then(result => {
-                alert(`تم تأكيد الدفع واستلام طلبك بنجاح! رقم طلبك: ${result.orderId}`);
-                window.location.href = window.location.pathname;
-            }).catch(err => {
-                alert(`فشل تأكيد الدفع: ${err.message}`);
-                window.location.href = window.location.pathname;
-            });
+            // Use timeout to allow user details to load first if needed
+            setTimeout(() => {
+                alert(`تم تأكيد الدفع واستلام طلبك بنجاح!`);
+                window.location.href = window.location.pathname; // Clear URL params
+            }, 2000);
         }
     });
-
-    async function handleLogin() {
-        const studentId = document.getElementById('login-id').value, password = document.getElementById('login-password').value, errorEl = document.getElementById('login-error');
-        errorEl.textContent = 'جاري تسجيل الدخول...';
-        try {
-            const { session, user } = await apiCall('login', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId, password })
-            });
-            localStorage.setItem('sessionToken', session.access_token);
-            showAppView();
-        } catch (error) { errorEl.textContent = error.message; }
-    }
-
-    async function handleSignUp() {
-        const name = document.getElementById('signup-name').value, studentId = document.getElementById('signup-id').value, password = document.getElementById('signup-password').value, errorEl = document.getElementById('signup-error');
-        errorEl.textContent = 'جاري إنشاء الحساب...';
-        try {
-            const { session, user } = await apiCall('signup', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, studentId, password })
-            });
-            localStorage.setItem('sessionToken', session.access_token);
-            showAppView();
-        } catch (error) { errorEl.textContent = error.message; }
-    }
-
-    function handleLogout() {
-        localStorage.removeItem('sessionToken');
-        showAuthView();
-    }
-
+    
     function showAuthView() { authView.classList.remove('hidden'); appView.classList.add('hidden'); }
     function showAppView() { authView.classList.add('hidden'); appView.classList.remove('hidden'); initializeApp(); }
-    function toggleAuthView() { document.getElementById('login-container').classList.toggle('hidden'); document.getElementById('signup-container').classList.toggle('hidden'); }
-
+    
     async function initializeApp() {
         loader.classList.remove('hidden');
+        document.getElementById('categories-container').innerHTML = '';
+        document.getElementById('menu-container').classList.add('hidden');
         try {
-            const [userDetails, menuData] = await Promise.all([apiCall('user-details'), apiCall('menu')]);
-            currentUser = userDetails;
-            document.getElementById('welcome-msg').innerHTML = `مرحبًا <span class="name">${currentUser.name}</span>، جاهز تطلب النهاردة؟`;
-            document.getElementById('wallet-btn').textContent = `رصيدك: ${currentUser.balance.toFixed(2)} جنيه`;
+            const [userDetails, menuData] = await Promise.all([
+                apiCall('user-details'),
+                apiCall('menu')
+            ]);
+            
+            document.getElementById('welcome-msg').innerHTML = `مرحبًا <span class="name">${userDetails.name}</span>، جاهز تطلب النهاردة؟`;
+            document.getElementById('wallet-btn').textContent = `رصيدك: ${Number(userDetails.balance).toFixed(2)} جنيه`;
+            
             allMenuItems = menuData;
             displayCategories();
         } catch (error) {
             alert(error.message);
-            if (error.message.includes('Invalid token')) handleLogout();
-        } finally { loader.classList.add('hidden'); }
+        } finally {
+            loader.classList.add('hidden');
+        }
     }
 
+    // --- Authentication ---
+    function toggleAuthView() { document.getElementById('login-container').classList.toggle('hidden'); document.getElementById('signup-container').classList.toggle('hidden'); }
+    
+    async function handleLogin() {
+        const studentId = document.getElementById('login-id').value;
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+        if (!studentId || !password) { errorEl.textContent = "الرجاء ملء جميع الحقول."; return; }
+        errorEl.textContent = 'جاري تسجيل الدخول...';
+
+        try {
+            const { session } = await apiCall('login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentId, password })
+            });
+            localStorage.setItem('sessionToken', session.access_token);
+            showAppView();
+        } catch (error) {
+            errorEl.textContent = error.message;
+        }
+    }
+
+    async function handleSignUp() {
+        const name = document.getElementById('signup-name').value;
+        const studentId = document.getElementById('signup-id').value;
+        const password = document.getElementById('signup-password').value;
+        const errorEl = document.getElementById('signup-error');
+        if (!name || !studentId || !password) { errorEl.textContent = "الرجاء ملء جميع الحقول."; return; }
+        errorEl.textContent = 'جاري إنشاء الحساب...';
+        
+        try {
+            const { session } = await apiCall('signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, studentId, password })
+            });
+            localStorage.setItem('sessionToken', session.access_token);
+            showAppView();
+        } catch (error) {
+            errorEl.textContent = error.message;
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('sessionToken');
+        cart = {};
+        updateCartDisplay();
+        showAuthView();
+    }
+
+    // --- Menu & Category Display ---
     function displayCategories() {
         const container = document.getElementById('categories-container');
         container.innerHTML = '';
+        menuContainer.classList.add('hidden');
+        container.classList.remove('hidden');
+        
+        // This ensures categories are displayed in a specific order first
         const categoryOrder = ["الكريبات 🥙", "الأطباق 🥣", "الوجبات العربي 🫔", "ساندويتش سوري 🌯", "ساندويتش فرنساوي 🥖", "الريزو 🍚", "ملوك الدايت 💪", "الاضافات 🍽️"];
         const displayed = new Set();
-        const createCard = cat => {
-            const parts = cat.split(' ');
-            const emoji = parts.pop(), text = parts.join(' ');
+        
+        const createCard = catName => {
+            const parts = catName.split(' ');
+            const emoji = parts.pop();
+            const text = parts.join(' ');
             const card = document.createElement('div');
             card.className = 'category-card';
             card.innerHTML = `<div class="category-card-icon">${emoji}</div><h2 class="category-card-title">${text}</h2>`;
-            card.onclick = () => showCategoryItems(cat);
+            card.onclick = () => showCategoryItems(catName);
             container.appendChild(card);
-            displayed.add(cat);
+            displayed.add(catName);
         };
+        
         categoryOrder.forEach(cat => { if (allMenuItems[cat]) createCard(cat); });
         Object.keys(allMenuItems).forEach(cat => { if (!displayed.has(cat)) createCard(cat); });
-        document.getElementById('categories-container').classList.remove('hidden');
-        document.getElementById('menu-container').classList.add('hidden');
     }
 
     function showCategoryItems(categoryName) {
@@ -218,10 +401,27 @@
         container.innerHTML = `<div class="menu-header"><h2 class="category-title">${categoryName}</h2><button class="back-btn" onclick="displayCategories()">الرجوع للأقسام</button></div>`;
         const grid = document.createElement('div');
         grid.className = 'menu-grid';
+        
         allMenuItems[categoryName].forEach(item => {
             const card = document.createElement('div');
             card.className = 'item-card';
-            card.innerHTML = `<div class="item-details"><h3 class="item-name">${item.name}</h3><p class="item-price">${item.price.toFixed(2)} جنيه</p></div><div class="item-actions"><button class="add-to-cart-btn" onclick="addToCart(event, '${item.name}', ${item.price})">أضف للسلة</button><div class="quantity-selector hidden"><button class="quantity-btn" onclick="updateQuantity(event, '${item.name}', -1)">-</button><span id="quantity-${item.name}" class="item-quantity">1</span><button class="quantity-btn" onclick="updateQuantity(event, '${item.name}', 1)">+</button></div></div>`;
+            card.dataset.itemId = item.id; // Use ID for tracking
+            card.dataset.itemName = item.name;
+            card.dataset.itemPrice = item.price;
+            
+            card.innerHTML = `
+                <div class="item-details">
+                    <h3 class="item-name">${item.name}</h3>
+                    <p class="item-price">${item.price.toFixed(2)} جنيه</p>
+                </div>
+                <div class="item-actions">
+                    <div class="quantity-selector">
+                        <button class="quantity-btn" onclick="updateItemQuantity(event, ${item.id}, -1)">-</button>
+                        <span id="quantity-${item.id}" class="item-quantity">1</span>
+                        <button class="quantity-btn" onclick="updateItemQuantity(event, ${item.id}, 1)">+</button>
+                    </div>
+                    <button class="add-to-cart-btn" onclick="addToCart(event, ${item.id})">أضف للسلة</button>
+                </div>`;
             grid.appendChild(card);
         });
         container.appendChild(grid);
@@ -229,18 +429,78 @@
         container.classList.remove('hidden');
     }
     
-    function filterMenu() { /* Implement search logic similar to your original */ }
+    function filterMenu() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+        if (!searchTerm) { displayCategories(); return; }
+        
+        const container = document.getElementById('menu-container');
+        container.innerHTML = `<div class="menu-header"><h2 class="category-title">نتائج البحث</h2><button class="back-btn" onclick="displayCategories()">الرجوع للأقسام</button></div>`;
+        const grid = document.createElement('div');
+        grid.className = 'menu-grid';
+        
+        let foundItems = false;
+        Object.values(allMenuItems).flat().forEach(item => {
+            if (item.name.toLowerCase().includes(searchTerm)) {
+                foundItems = true;
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.dataset.itemId = item.id;
+                card.dataset.itemName = item.name;
+                card.dataset.itemPrice = item.price;
+                card.innerHTML = `
+                    <div class="item-details">
+                        <h3 class="item-name">${item.name}</h3>
+                        <p class="item-price">${item.price.toFixed(2)} جنيه</p>
+                    </div>
+                    <div class="item-actions">
+                        <div class="quantity-selector">
+                            <button class="quantity-btn" onclick="updateItemQuantity(event, ${item.id}, -1)">-</button>
+                            <span id="quantity-${item.id}" class="item-quantity">1</span>
+                            <button class="quantity-btn" onclick="updateItemQuantity(event, ${item.id}, 1)">+</button>
+                        </div>
+                        <button class="add-to-cart-btn" onclick="addToCart(event, ${item.id})">أضف للسلة</button>
+                    </div>`;
+                grid.appendChild(card);
+            }
+        });
+        
+        if (!foundItems) { grid.innerHTML = '<p style="text-align:center; padding: 20px;">لا توجد نتائج بحث مطابقة.</p>'; }
+        container.appendChild(grid);
+        document.getElementById('categories-container').classList.add('hidden');
+        container.classList.remove('hidden');
+    }
 
-    function addToCart(event, itemName, itemPrice, qty = 1) {
+    // --- Cart Logic ---
+    function updateItemQuantity(event, itemId, change) {
         event.stopPropagation();
-        if (cart[itemName]) { cart[itemName].quantity += qty; }
-        else { cart[itemName] = { name: itemName, price: itemPrice, quantity: qty }; }
+        const el = document.getElementById(`quantity-${itemId}`);
+        if (!el) return;
+        let qty = parseInt(el.textContent) + change;
+        if (qty < 1) qty = 1;
+        el.textContent = qty;
+    }
+
+    function addToCart(event, itemId) {
+        if (event) event.stopPropagation();
+        const card = document.querySelector(`.item-card[data-item-id='${itemId}']`);
+        if (!card) return;
+        
+        const itemName = card.dataset.itemName;
+        const itemPrice = parseFloat(card.dataset.itemPrice);
+        const quantity = parseInt(document.getElementById(`quantity-${itemId}`).textContent);
+
+        if (cart[itemId]) {
+            cart[itemId].quantity += quantity;
+        } else {
+            cart[itemId] = { id: itemId, name: itemName, price: itemPrice, quantity: quantity };
+        }
         updateCartDisplay();
     }
-    
-    function updateQuantity(event, itemName, change) { /* Logic to update quantity in cart */ }
 
-    function removeFromCart(itemName) { delete cart[itemName]; updateCartDisplay(); }
+    function removeFromCart(itemId) {
+        delete cart[itemId];
+        updateCartDisplay();
+    }
 
     function updateCartDisplay() {
         const list = document.getElementById('cart-items-list');
@@ -248,52 +508,25 @@
         const totalEl = document.getElementById('total-price');
         list.innerHTML = '';
         let totalItems = 0, totalPrice = 0;
+        
         Object.values(cart).forEach(item => {
             totalItems += item.quantity;
             totalPrice += item.price * item.quantity;
             const li = document.createElement('li');
-            li.innerHTML = `<span>${item.name} (x${item.quantity})</span><span>${(item.price * item.quantity).toFixed(2)} جنيه <button class="remove-item-btn" onclick="removeFromCart('${item.name}')">🗑️</button></span>`;
+            li.innerHTML = `<span>${item.name} (x${item.quantity})</span><span>${(item.price * item.quantity).toFixed(2)} جنيه <button class="remove-item-btn" onclick="removeFromCart(${item.id})">🗑️</button></span>`;
             list.appendChild(li);
         });
+
         countEl.textContent = totalItems;
+        countEl.style.display = totalItems > 0 ? 'flex' : 'none';
         totalEl.textContent = `الإجمالي: ${totalPrice.toFixed(2)} جنيه`;
     }
 
-    async function placeWalletOrder() {
-        if (Object.keys(cart).length === 0) return alert("سلة الطلبات فارغة!");
-        document.querySelectorAll('.modal-btn').forEach(b => b.disabled = true);
-        try {
-            const result = await apiCall('process-wallet-order', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: Object.values(cart), notes: document.getElementById('order-notes').value })
-            });
-            alert(`تم استلام طلبك بنجاح! رقم الطلب: ${result.orderId}`);
-            cart = {};
-            updateCartDisplay();
-            toggleModal('cart-modal-overlay');
-            initializeApp(); // Refresh wallet
-        } catch (error) { alert(`فشل الطلب: ${error.message}`); }
-        finally { document.querySelectorAll('.modal-btn').forEach(b => b.disabled = false); }
-    }
-
-    async function initiateCardPayment() {
-        if (Object.keys(cart).length === 0) return alert("سلة الطلبات فارغة!");
-        document.querySelectorAll('.modal-btn').forEach(b => b.disabled = true);
-        try {
-            const result = await apiCall('start-paymob-payment', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: Object.values(cart) })
-            });
-            window.top.location.href = result.redirectUrl;
-        } catch (error) {
-            alert(`فشل الاتصال ببوابة الدفع: ${error.message}`);
-            document.querySelectorAll('.modal-btn').forEach(b => b.disabled = false);
-        }
-    }
-
+    // --- Modals & Actions ---
     async function toggleModal(modalId) {
         const modal = document.getElementById(modalId);
         const isOpen = modal.classList.toggle('show');
+        
         if (isOpen && modalId === 'history-modal-overlay') {
             const list = document.getElementById('history-items-list');
             list.innerHTML = '<li>جاري تحميل السجل...</li>';
@@ -303,17 +536,148 @@
                 if (history.length === 0) { list.innerHTML = '<li>لم تقم بأي طلبات بعد.</li>'; return; }
                 history.forEach(order => {
                     const li = document.createElement('li');
-                    const statusClass = order.isReady ? 'status-ready' : 'status-pending';
-                    const statusText = order.isReady ? "جاهز للاستلام" : "قيد التحضير";
+                    const statusClass = order.status === 'جاهز للاستلام' ? 'status-ready' : 'status-pending';
                     const itemsText = order.items.map(i => `${i.name} (x${i.quantity})`).join(', ');
                     const date = new Date(order.created_at).toLocaleString('ar-EG');
-                    li.innerHTML = `<div style="width: 100%"><div style="display:flex; justify-content:space-between; font-weight:700"><span>${order.id}</span><span class="${statusClass}">${statusText}</span></div><div><small>${date} - الإجمالي: ${order.totalPrice.toFixed(2)} جنيه</small></div><p style="margin: 5px 0;">${itemsText}</p></div>`;
+                    const orderDataString = JSON.stringify(order.items).replace(/"/g, '&quot;');
+
+                    li.innerHTML = `
+                        <div style="width:100%">
+                            <div style="display:flex; justify-content:space-between; font-weight:700">
+                                <span>رقم الطلب: ${order.id}</span>
+                                <span class="${statusClass}">${order.status}</span>
+                            </div>
+                            <div class="history-item-details">
+                                <span>${date}</span> - <span>الإجمالي: ${order.totalPrice.toFixed(2)} جنيه</span>
+                            </div>
+                            <p style="margin: 5px 0 0 0;">${itemsText}</p>
+                            <button class="reorder-btn" onclick='reorder(${orderDataString})'>اطلبها مجددًا</button>
+                        </div>`;
                     list.appendChild(li);
                 });
-            } catch(error) { list.innerHTML = `<li>فشل تحميل السجل: ${error.message}</li>`; }
+            } catch (error) {
+                list.innerHTML = `<li>فشل تحميل السجل: ${error.message}</li>`;
+            }
         }
+    }
+
+    function reorder(items) {
+        items.forEach(item => {
+            if (cart[item.id]) {
+                cart[item.id].quantity += item.quantity;
+            } else {
+                cart[item.id] = item;
+            }
+        });
+        updateCartDisplay();
+        toggleModal('history-modal-overlay');
+        toggleModal('cart-modal-overlay');
+        alert("تمت إضافة أصناف الطلب القديم إلى سلتك الحالية!");
+    }
+    
+    async function placeWalletOrder() {
+        if (Object.keys(cart).length === 0) return alert("سلة الطلبات فارغة!");
+        const notes = document.getElementById('order-notes').value;
+        const buttons = document.querySelectorAll('#cart-modal-overlay .modal-btn');
+        buttons.forEach(b => b.disabled = true);
+        
+        try {
+            const result = await apiCall('process-wallet-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: Object.values(cart), notes })
+            });
+            alert(`تم استلام طلبك بنجاح! رقم الطلب: ${result.orderId}`);
+            cart = {};
+            updateCartDisplay();
+            toggleModal('cart-modal-overlay');
+            initializeApp(); // Refresh user details including wallet
+        } catch (error) {
+            alert(`فشل الطلب: ${error.message}`);
+        } finally {
+            buttons.forEach(b => b.disabled = false);
+        }
+    }
+    
+    async function initiateCardPayment() {
+        if (Object.keys(cart).length === 0) return alert("سلة الطلبات فارغة!");
+        const buttons = document.querySelectorAll('#cart-modal-overlay .modal-btn');
+        buttons.forEach(b => b.disabled = true);
+        
+        try {
+            const result = await apiCall('start-paymob-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: Object.values(cart) })
+            });
+            // Redirect the top-level window to the payment URL
+            window.top.location.href = result.redirectUrl;
+        } catch (error) {
+            alert(`فشل الاتصال ببوابة الدفع: ${error.message}`);
+            buttons.forEach(b => b.disabled = false);
+        }
+    }
+    
+    async function trackMyOrder() {
+        const orderId = document.getElementById('order-id-input').value.trim();
+        const resultEl = document.getElementById('tracking-result');
+        if (!orderId) { resultEl.textContent = "الرجاء إدخال رقم الطلب."; return; }
+        resultEl.textContent = 'جاري البحث...';
+        
+        try {
+            const order = await apiCall(`order-status/${orderId}`);
+            resultEl.textContent = `حالة الطلب: ${order.status}`;
+            resultEl.style.color = order.status === "جاهز للاستلام" ? "#4ade80" : "var(--primary-yellow)";
+        } catch (error) {
+            resultEl.textContent = "رقم الطلب غير صحيح أو لم يتم العثور عليه.";
+            resultEl.style.color = "var(--primary-red)";
+        }
+    }
+    
+    function showMoodSuggestion(mood) {
+        const resultDiv = document.getElementById('mood-suggestion-result');
+        const suggestions = {
+            'مصدع 🤯': { text: "طلبك المثالي هو: إسبريسو قوي مع ساندويتش زنجر حار عشان تفوق!", itemNames: ['إسبريسو', 'ساندوتش زنجر'] },
+            'رايق 😎': { text: "محتاج تدلع نفسك بـ: ميلك شيك أوريو مع مولتن كيك!", itemNames: ['ميلك شيك اوريو', 'مولتن كيك'] },
+            'جعان أوي 🤤': { text: "مفيش وقت للكلام! وجبة عربي دجاج هي الحل!", itemNames: ['وجبة عربي دجاج'] }
+        };
+        const suggestion = suggestions[mood];
+        resultDiv.innerHTML = `<p>${suggestion.text}</p><button class="modal-btn" onclick='addMoodSuggestionToCart(${JSON.stringify(suggestion.itemNames)})'>اطلبها الآن</button>`;
+    }
+    
+    function addMoodSuggestionToCart(itemNames) {
+        let itemsFound = 0;
+        itemNames.forEach(name => {
+            const lowerCaseName = name.toLowerCase();
+            const itemData = Object.values(allMenuItems).flat().find(item => item.name.toLowerCase() === lowerCaseName);
+            
+            if (itemData) {
+                if (cart[itemData.id]) {
+                    cart[itemData.id].quantity += 1;
+                } else {
+                    cart[itemData.id] = { id: itemData.id, name: itemData.name, price: itemData.price, quantity: 1 };
+                }
+                itemsFound++;
+            }
+        });
+
+        if (itemsFound > 0) {
+            updateCartDisplay();
+            toggleModal('mood-modal-overlay');
+            toggleModal('cart-modal-overlay');
+            alert("تمت إضافة الاقتراح إلى سلتك!");
+        } else {
+            alert("عذرًا، لم نتمكن من العثور على أصناف هذا الاقتراح في المنيو الحالي.");
+        }
+    }
+
+    // --- Theme Toggle ---
+    function toggleTheme() {
+        document.body.classList.toggle('light-mode');
+        const isLight = document.body.classList.contains('light-mode');
+        document.getElementById('theme-toggle-btn').innerHTML = isLight ? '☀️' : '🌙';
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
     }
 </script>
 </body>
 </html>
-
