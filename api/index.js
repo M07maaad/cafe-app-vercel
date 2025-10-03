@@ -8,12 +8,19 @@ app.use(cors());
 app.use(express.json());
 
 // --- The Standard and Correct Way to Initialize ---
-// Initialize the Supabase client once at the top level.
-// This is the most stable and recommended pattern.
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+let supabase;
+if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+}
 
 // Middleware to check JWT token
 const authCheck = async (req, res, next) => {
+    if (!supabase) {
+        return res.status(500).json({ error: "Server Error: Supabase client is not initialized. Check environment variables." });
+    }
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
         return res.status(401).json({ error: 'No token provided.' });
@@ -28,7 +35,45 @@ const authCheck = async (req, res, next) => {
 
 // --- API ROUTES ---
 
+app.post('/login', async (req, res) => {
+    // --- DIAGNOSTIC CHECK ---
+    if (!supabase) {
+        return res.status(500).json({ 
+            error: "Server Error: Supabase client is not initialized. Check Vercel environment variables.",
+            tip: "تأكد من أن أسماء المتغيرات هي SUPABASE_URL و SUPABASE_KEY بالضبط."
+        });
+    }
+
+    try {
+        // --- DIAGNOSTIC STEP 2: Test basic connectivity and RLS ---
+        const { error: testError } = await supabase.from('users').select('id').limit(1);
+        if (testError) {
+             return res.status(500).json({ 
+                error: "Database Connection Error.",
+                details: testError.message,
+                tip: "هذا الخطأ يعني غالبًا أن حماية RLS مازالت مفعلة على جدول 'users'. يرجى تعطيلها من إعدادات Supabase."
+            });
+        }
+
+        // --- If diagnostics pass, proceed with login ---
+        const { studentId, password } = req.body;
+        const email = `${studentId}@chilli-app.io`;
+        
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        if (loginError) {
+            return res.status(400).json({ error: "الرقم الجامعي أو كلمة المرور غير صحيحة." });
+        }
+        
+        res.status(200).json(data);
+    } catch (e) {
+        console.error("Critical Login Error:", e.message);
+        res.status(500).json({ error: "A critical server error occurred.", details: e.message });
+    }
+});
+
+
 app.post('/signup', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: "Server not configured." });
     try {
         const { name, studentId, password } = req.body;
         const email = `${studentId}@chilli-app.io`;
@@ -51,24 +96,9 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-app.post('/login', async (req, res) => {
-    try {
-        const { studentId, password } = req.body;
-        const email = `${studentId}@chilli-app.io`;
-        
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            return res.status(400).json({ error: "الرقم الجامعي أو كلمة المرور غير صحيحة." });
-        }
-        
-        res.status(200).json(data);
-    } catch (error) {
-        console.error("Login Error:", error.message);
-        res.status(500).json({ error: "An unexpected error occurred during login." });
-    }
-});
 
 app.get('/menu', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: "Server not configured." });
     try {
         const { data, error } = await supabase.from('menu').select('*');
         if (error) throw error;
@@ -81,22 +111,19 @@ app.get('/menu', async (req, res) => {
         
         res.status(200).json(menuByCategory);
     } catch (error) {
-        console.error("Menu Fetch Error:", error.message);
         res.status(500).json({ error: "Could not fetch menu." });
     }
 });
 
-// Protected routes
+// Other routes remain the same...
+
 app.get('/user-details', authCheck, async (req, res) => {
     try {
         const { data: userData, error: userError } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
         const { data: walletData, error: walletError } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
-        
         if (userError || walletError) throw new Error("Could not fetch user data.");
-        
         res.status(200).json({ ...userData, ...walletData });
     } catch (error) {
-        console.error("User Details Error:", error.message);
         res.status(500).json({ error: "Could not fetch user details." });
     }
 });
@@ -107,7 +134,6 @@ app.get('/orders', authCheck, async (req, res) => {
         if (error) throw error;
         res.status(200).json(data);
     } catch (error) {
-        console.error("Fetch Orders Error:", error.message);
         res.status(500).json({ error: "Could not fetch orders." });
     }
 });
@@ -120,16 +146,12 @@ app.post('/process-wallet-order', authCheck, async (req, res) => {
         if (fetchError || !wallet || wallet.balance < totalPrice) {
             return res.status(400).json({ error: "رصيدك غير كافٍ." });
         }
-        
         const newBalance = wallet.balance - totalPrice;
         await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', req.user.id);
-        
         const { data: orderData, error: orderError } = await supabase.from('orders').insert({ user_id: req.user.id, items, totalPrice, paymentMethod: 'Wallet', notes, status: 'قيد التحضير' }).select('id').single();
         if (orderError) throw orderError;
-        
         res.status(200).json({ status: "success", orderId: orderData.id });
     } catch (error) {
-        console.error("Wallet Order Error:", error.message);
         res.status(500).json({ error: "Failed to create order." });
     }
 });
@@ -164,6 +186,7 @@ app.post('/start-paymob-payment', authCheck, async (req, res) => {
 
 app.post('/confirm-paymob-callback', async (req, res) => {
     try {
+        if (!supabase) throw new Error("Callback error: Supabase not configured");
         const { obj } = req.body;
         if (obj && obj.success === true) {
             const paymobOrderId = obj.order.id;
