@@ -68,7 +68,6 @@
       .action-btn.cart { background-image: linear-gradient(45deg, var(--primary-yellow), var(--primary-orange)); color: #1d1d1d; }
       .action-btn.tracking { background-image: linear-gradient(45deg, #4facfe, #00f2fe); color: #1d1d1d; }
       .action-btn.history { background-image: linear-gradient(45deg, #a280ff, #f280ff); color: white; }
-      .action-btn.mood { background-image: linear-gradient(45deg, #ff7e5f, #feb47b); color: #1d1d1d; }
       #theme-toggle-btn { background-image: linear-gradient(45deg, #f0f0f0, #a0a0a0); color: #1d1d1d; font-size: 1.2em; line-height: 1; }
       .action-count { position: absolute; top: -8px; right: -8px; background: var(--primary-red); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: 600; border: 2px solid var(--background); }
       .search-container { max-width: 800px; margin: 30px auto; }
@@ -180,10 +179,9 @@
         </header>
         <div class="action-bar">
             <button id="wallet-btn" class="action-btn wallet" onclick="alert('يمكنك شحن رصيدك من الكاشير مباشرة.')">رصيدك: 0.00 جنيه</button>
-            <button class="action-btn cart" onclick="toggleModal('cart-modal-overlay')">السلة<span id="cart-item-count" class="action-count">0</span></button>
+            <button class="action-btn cart" onclick="toggleModal('cart-modal-overlay')">السلة<span id="cart-item-count" class="action-count" style="display: none;">0</span></button>
             <button id="tracking-btn" class="action-btn tracking" onclick="toggleModal('tracking-modal-overlay')">تتبع طلبك</button>
             <button class="action-btn history" onclick="toggleModal('history-modal-overlay')">سجل الطلبات</button>
-            <button class="action-btn mood" onclick="toggleModal('mood-modal-overlay')">إيه مودك؟ 🤔</button>
             <button id="theme-toggle-btn" class="action-btn" onclick="toggleTheme()">🌙</button>
             <button id="logout-btn" class="action-btn" style="background-image: linear-gradient(45deg, #888, #555); color: white;" onclick="handleLogout()">الخروج</button>
         </div>
@@ -225,29 +223,18 @@
             <ul id="history-items-list" style="list-style: none; padding: 0;"></ul>
         </div>
     </div>
-    <div id="mood-modal-overlay" class="modal-overlay">
-        <div class="modal-content">
-            <span class="close-modal" onclick="toggleModal('mood-modal-overlay')">&times;</span>
-            <h3>إيه مودك النهاردة؟</h3>
-            <div class="mood-buttons">
-                <button class="modal-btn" onclick="showMoodSuggestion('مصدع 🤯')">مصدع ومحتاج أفوق 🤯</button>
-                <button class="modal-btn" onclick="showMoodSuggestion('رايق 😎')">رايق ومحتاج أتدلع 😎</button>
-                <button class="modal-btn" onclick="showMoodSuggestion('جعان أوي 🤤')">جعان أوي ومستعجل 🤤</button>
-            </div>
-            <div id="mood-suggestion-result" class="mood-suggestion"></div>
-        </div>
-    </div>
     
     <div class="footer-wrapper">
         <p>Developed By <a href="https://wa.me/201208087322" target="_blank" class="whatsapp-link"><span class="tooltip-container">7MAD<span class="tooltip-text">Mohamed Hammad - Clinical Pharmacy <br> Click for contact</span></span></a></p>
     </div>
 
 <script>
-    // --- Global State ---
+    // --- Global State & Element Cache ---
     let cart = {}, allMenuItems = {};
     const authView = document.getElementById('auth-view');
     const appView = document.getElementById('app-view');
     const loader = document.getElementById('loader');
+    const menuContainer = document.getElementById('menu-container');
 
     // --- API Helper ---
     async function apiCall(endpoint, options = {}) {
@@ -258,7 +245,6 @@
         const response = await fetch(`/api/${endpoint}`, options);
         const data = await response.json();
         if (!response.ok) {
-            // If token is invalid, log out the user
             if (response.status === 401) handleLogout();
             throw new Error(data.error || 'Something went wrong');
         }
@@ -267,13 +253,11 @@
 
     // --- Page Load & Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Theme check
         if (localStorage.getItem('theme') === 'light') {
             document.body.classList.add('light-mode');
             document.getElementById('theme-toggle-btn').innerHTML = '☀️';
         }
 
-        // Auth check
         const sessionToken = localStorage.getItem('sessionToken');
         if (sessionToken) {
             showAppView();
@@ -281,14 +265,12 @@
             showAuthView();
         }
         
-        // Paymob return check
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'true' && urlParams.get('id')) {
             document.getElementById('payment-confirm-overlay').style.display = 'flex';
-            // Use timeout to allow user details to load first if needed
             setTimeout(() => {
                 alert(`تم تأكيد الدفع واستلام طلبك بنجاح!`);
-                window.location.href = window.location.pathname; // Clear URL params
+                window.location.href = window.location.pathname;
             }, 2000);
         }
     });
@@ -299,7 +281,7 @@
     async function initializeApp() {
         loader.classList.remove('hidden');
         document.getElementById('categories-container').innerHTML = '';
-        document.getElementById('menu-container').classList.add('hidden');
+        menuContainer.classList.add('hidden');
         try {
             const [userDetails, menuData] = await Promise.all([
                 apiCall('user-details'),
@@ -376,7 +358,6 @@
         menuContainer.classList.add('hidden');
         container.classList.remove('hidden');
         
-        // This ensures categories are displayed in a specific order first
         const categoryOrder = ["الكريبات 🥙", "الأطباق 🥣", "الوجبات العربي 🫔", "ساندويتش سوري 🌯", "ساندويتش فرنساوي 🥖", "الريزو 🍚", "ملوك الدايت 💪", "الاضافات 🍽️"];
         const displayed = new Set();
         
@@ -397,15 +378,14 @@
     }
 
     function showCategoryItems(categoryName) {
-        const container = document.getElementById('menu-container');
-        container.innerHTML = `<div class="menu-header"><h2 class="category-title">${categoryName}</h2><button class="back-btn" onclick="displayCategories()">الرجوع للأقسام</button></div>`;
+        menuContainer.innerHTML = `<div class="menu-header"><h2 class="category-title">${categoryName}</h2><button class="back-btn" onclick="displayCategories()">الرجوع للأقسام</button></div>`;
         const grid = document.createElement('div');
         grid.className = 'menu-grid';
         
         allMenuItems[categoryName].forEach(item => {
             const card = document.createElement('div');
             card.className = 'item-card';
-            card.dataset.itemId = item.id; // Use ID for tracking
+            card.dataset.itemId = item.id;
             card.dataset.itemName = item.name;
             card.dataset.itemPrice = item.price;
             
@@ -424,17 +404,16 @@
                 </div>`;
             grid.appendChild(card);
         });
-        container.appendChild(grid);
+        menuContainer.appendChild(grid);
         document.getElementById('categories-container').classList.add('hidden');
-        container.classList.remove('hidden');
+        menuContainer.classList.remove('hidden');
     }
     
     function filterMenu() {
         const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
         if (!searchTerm) { displayCategories(); return; }
         
-        const container = document.getElementById('menu-container');
-        container.innerHTML = `<div class="menu-header"><h2 class="category-title">نتائج البحث</h2><button class="back-btn" onclick="displayCategories()">الرجوع للأقسام</button></div>`;
+        menuContainer.innerHTML = `<div class="menu-header"><h2 class="category-title">نتائج البحث</h2><button class="back-btn" onclick="displayCategories()">الرجوع للأقسام</button></div>`;
         const grid = document.createElement('div');
         grid.className = 'menu-grid';
         
@@ -465,9 +444,9 @@
         });
         
         if (!foundItems) { grid.innerHTML = '<p style="text-align:center; padding: 20px;">لا توجد نتائج بحث مطابقة.</p>'; }
-        container.appendChild(grid);
+        menuContainer.appendChild(grid);
         document.getElementById('categories-container').classList.add('hidden');
-        container.classList.remove('hidden');
+        menuContainer.classList.remove('hidden');
     }
 
     // --- Cart Logic ---
@@ -610,7 +589,6 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ items: Object.values(cart) })
             });
-            // Redirect the top-level window to the payment URL
             window.top.location.href = result.redirectUrl;
         } catch (error) {
             alert(`فشل الاتصال ببوابة الدفع: ${error.message}`);
@@ -633,43 +611,6 @@
             resultEl.style.color = "var(--primary-red)";
         }
     }
-    
-    function showMoodSuggestion(mood) {
-        const resultDiv = document.getElementById('mood-suggestion-result');
-        const suggestions = {
-            'مصدع 🤯': { text: "طلبك المثالي هو: إسبريسو قوي مع ساندويتش زنجر حار عشان تفوق!", itemNames: ['إسبريسو', 'ساندوتش زنجر'] },
-            'رايق 😎': { text: "محتاج تدلع نفسك بـ: ميلك شيك أوريو مع مولتن كيك!", itemNames: ['ميلك شيك اوريو', 'مولتن كيك'] },
-            'جعان أوي 🤤': { text: "مفيش وقت للكلام! وجبة عربي دجاج هي الحل!", itemNames: ['وجبة عربي دجاج'] }
-        };
-        const suggestion = suggestions[mood];
-        resultDiv.innerHTML = `<p>${suggestion.text}</p><button class="modal-btn" onclick='addMoodSuggestionToCart(${JSON.stringify(suggestion.itemNames)})'>اطلبها الآن</button>`;
-    }
-    
-    function addMoodSuggestionToCart(itemNames) {
-        let itemsFound = 0;
-        itemNames.forEach(name => {
-            const lowerCaseName = name.toLowerCase();
-            const itemData = Object.values(allMenuItems).flat().find(item => item.name.toLowerCase() === lowerCaseName);
-            
-            if (itemData) {
-                if (cart[itemData.id]) {
-                    cart[itemData.id].quantity += 1;
-                } else {
-                    cart[itemData.id] = { id: itemData.id, name: itemData.name, price: itemData.price, quantity: 1 };
-                }
-                itemsFound++;
-            }
-        });
-
-        if (itemsFound > 0) {
-            updateCartDisplay();
-            toggleModal('mood-modal-overlay');
-            toggleModal('cart-modal-overlay');
-            alert("تمت إضافة الاقتراح إلى سلتك!");
-        } else {
-            alert("عذرًا، لم نتمكن من العثور على أصناف هذا الاقتراح في المنيو الحالي.");
-        }
-    }
 
     // --- Theme Toggle ---
     function toggleTheme() {
@@ -681,3 +622,4 @@
 </script>
 </body>
 </html>
+
