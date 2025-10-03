@@ -42,11 +42,11 @@ router.post('/signup', async (req, res) => {
         await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
         
         res.status(200).json({ session, user });
-    } catch (error) {
-        console.error("Signup Error:", error.message);
-        res.status(500).json({ error: "An unexpected error occurred during signup." });
-    }
-});
+} catch (error) {
+    console.error("Signup Error:", error.message);
+    // --- TEMPORARY CHANGE FOR DEBUGGING ---
+    res.status(500).json({ error: error.message }); 
+}
 
 router.post('/login', async (req, res) => {
     try {
