@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الطلبات الحالية - Chilli</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --background: #f0f2f5; --text-color: #1c1e21; --card-bg: #ffffff; --shadow: rgba(0,0,0,0.1); --green: #2ecc71; --orange: #e67e22; --blue: #3498db; }
+        body { font-family: 'Tajawal', sans-serif; background-color: var(--background); color: var(--text-color); margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { color: #e63946; }
+        .stats { font-size: 1.2em; font-weight: 700; }
+        #logout-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+        #orders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .order-card { background: var(--card-bg); border-radius: 15px; box-shadow: 0 5px 15px var(--shadow); padding: 15px; border-right: 10px solid var(--orange); transition: all 0.3s ease; }
+        .order-card.new-order { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(230, 126, 34, 0); } 100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); } }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        .order-id { font-size: 1.5em; font-weight: 800; color: #333; }
+        .order-time { font-size: 0.9em; color: #777; }
+        .customer-name { font-weight: 700; margin-bottom: 15px; }
+        .items-list { list-style: none; padding: 0; margin: 0 0 15px 0; }
+        .items-list li { display: flex; justify-content: space-between; padding: 5px 0; }
+        .item-name { font-weight: 500; }
+        .item-quantity { font-weight: 700; background: #eee; padding: 2px 8px; border-radius: 5px; }
+        .notes { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 8px; margin-top: 10px; }
+        .payment-method { font-weight: 700; text-align: center; padding: 8px; border-radius: 8px; margin-top: 15px; }
+        .payment-method.wallet { background: #e0f2f1; color: #00796b; }
+        .payment-method.card { background: #e3f2fd; color: #1565c0; }
+        .action-btn { width: 100%; padding: 15px; margin-top: 15px; font-size: 1.2em; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; background: var(--green); color: white; }
+        #no-orders-msg { text-align: center; font-size: 1.5em; color: #777; padding: 50px; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>الطلبات الحالية</h1>
+        <div class="stats">إجمالي الطلبات: <span id="order-count">0</span></div>
+        <button id="logout-btn" onclick="handleLogout()">تسجيل الخروج</button>
+    </div>
+    <div id="orders-container">
+        <p id="no-orders-msg">لا توجد طلبات قيد التحضير حاليًا...</p>
+    </div>
+
+    <script>
+        const ordersContainer = document.getElementById('orders-container');
+        const orderCountEl = document.getElementById('order-count');
+        const noOrdersMsg = document.getElementById('no-orders-msg');
+        let currentOrderIds = new Set();
+        let audioContext;
+        let password;
+
+        // --- Sound Notification ---
+        function playNotificationSound() {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A nice, noticeable pitch
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // --- Authentication & Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            password = localStorage.getItem('dashboardPassword');
+            if (!password) {
+                window.location.href = 'dashboard-login.html';
+                return;
+            }
+            fetchOrders();
+            setInterval(fetchOrders, 10000); // Poll for new orders every 10 seconds
+        });
+
+        function handleLogout() {
+            localStorage.removeItem('dashboardPassword');
+            window.location.href = 'dashboard-login.html';
+        }
+
+        // --- Order Fetching and Rendering ---
+        async function fetchOrders() {
+            try {
+                const response = await fetch('/api/all-orders', { headers: { 'Authorization': `Bearer ${password}` } });
+                if (!response.ok) {
+                    if (response.status === 401) handleLogout();
+                    throw new Error('Failed to fetch orders.');
+                }
+                const orders = await response.json();
+                renderOrders(orders);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function renderOrders(orders) {
+            orderCountEl.textContent = orders.length;
+            noOrdersMsg.style.display = orders.length === 0 ? 'block' : 'none';
+
+            const newOrderIds = new Set(orders.map(o => o.id));
+            let hasNewOrder = false;
+            
+            // Check for new orders to play sound
+            for (const order of orders) {
+                if (!currentOrderIds.has(order.id)) {
+                    hasNewOrder = true;
+                    break;
+                }
+            }
+            if (hasNewOrder) {
+                playNotificationSound();
+            }
+
+            // Remove completed orders from the DOM
+            document.querySelectorAll('.order-card').forEach(card => {
+                if (!newOrderIds.has(parseInt(card.dataset.orderId))) {
+                    card.remove();
+                }
+            });
+            
+            // Add or update order cards
+            orders.forEach(order => {
+                const existingCard = document.querySelector(`.order-card[data-order-id='${order.id}']`);
+                if (existingCard) return; // Don't re-render existing cards
+
+                const card = document.createElement('div');
+                card.className = 'order-card new-order';
+                card.dataset.orderId = order.id;
+
+                const itemsHtml = order.items.map(item => `<li><span class="item-name">${item.name}</span><span class="item-quantity">x${item.quantity}</span></li>`).join('');
+                const notesHtml = order.notes ? `<div class="notes"><strong>ملاحظات:</strong> ${order.notes}</div>` : '';
+                const paymentHtml = `<div class="payment-method ${order.paymentMethod.toLowerCase()}">${order.paymentMethod === 'Wallet' ? 'محفظة' : 'بطاقة بنكية'}</div>`;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="order-id">#${order.id}</span>
+                        <span class="order-time">${new Date(order.created_at).toLocaleTimeString('ar-EG')}</span>
+                    </div>
+                    <p class="customer-name">العميل: <strong>${order.users.name} (${order.users.studentId})</strong></p>
+                    <ul class="items-list">${itemsHtml}</ul>
+                    ${notesHtml}
+                    ${paymentHtml}
+                    <button class="action-btn" onclick="updateOrderStatus(${order.id})">جاهز للاستلام</button>
+                `;
+                ordersContainer.prepend(card);
+
+                setTimeout(() => card.classList.remove('new-order'), 3000); // Remove pulse animation after a bit
+            });
+            
+            currentOrderIds = newOrderIds;
+        }
+
+        async function updateOrderStatus(orderId) {
+            try {
+                const response = await fetch('/api/update-order-status', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${password}` 
+                    },
+                    body: JSON.stringify({ orderId, status: 'جاهز للاستلام' })
+                });
+                if (!response.ok) throw new Error('Failed to update status.');
+                
+                // Remove the card immediately for a snappy UI
+                const cardToRemove = document.querySelector(`.order-card[data-order-id='${orderId}']`);
+                if (cardToRemove) cardToRemove.remove();
+                currentOrderIds.delete(orderId);
+                orderCountEl.textContent = document.querySelectorAll('.order-card').length;
+                noOrdersMsg.style.display = document.querySelectorAll('.order-card').length === 0 ? 'block' : 'none';
+
+            } catch (error) {
+                console.error(error);
+                alert('فشل تحديث حالة الطلب. الرجاء المحاولة مرة أخرى.');
+            }
+        }
+    </script>
+</body>
+</html>
