@@ -2,11 +2,10 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 
-// تم تحويل 'app' إلى 'router' لجعله قابلاً للاستيراد في الملف الرئيسي
-const router = express.Router(); 
+const router = express.Router();
 router.use(express.json());
 
-// هام: تأكد من أنك تستخدم متغيرات البيئة وأن المفاتيح ليست مكتوبة هنا مباشرة
+// تأكد من أن متغيرات البيئة الخاصة بك صحيحة في Vercel
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // --- Middleware to check for a valid user token ---
@@ -24,7 +23,7 @@ const authCheck = async (req, res, next) => {
 };
 
 // --- API ROUTES ---
-// تم استبدال كل 'app' بـ 'router'
+
 router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
@@ -42,11 +41,12 @@ router.post('/signup', async (req, res) => {
         await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
         
         res.status(200).json({ session, user });
-} catch (error) {
-    console.error("Signup Error:", error.message);
-    // --- TEMPORARY CHANGE FOR DEBUGGING ---
-    res.status(500).json({ error: error.message }); 
-}
+    } catch (error) {
+        console.error("Signup Error:", error.message);
+        // هذا هو السطر الذي عدلناه لتصحيح الأخطاء - وهو الآن داخل كود سليم
+        res.status(500).json({ error: error.message });
+    }
+}); // <-- كان القوس الناقص هنا على الأرجح
 
 router.post('/login', async (req, res) => {
     try {
@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
         res.status(200).json(data);
     } catch (error) {
         console.error("Login Error:", error.message);
-        res.status(500).json({ error: "An unexpected error occurred during login." });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -172,5 +172,5 @@ router.post('/confirm-paymob-callback', async (req, res) => {
     res.status(200).send();
 });
 
-// تم تصدير الراوتر ليتم استخدامه في الملف الرئيسي
 module.exports = router;
+
