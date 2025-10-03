@@ -1,19 +1,13 @@
 const express = require('express');
-const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+// تم تحويل 'app' إلى 'router' لجعله قابلاً للاستيراد في الملف الرئيسي
+const router = express.Router(); 
+router.use(express.json());
 
-// --- The Standard and Correct Way to Initialize ---
-// This initializes the Supabase client once using the environment variables from Vercel.
-// --- TEMPORARY DIAGNOSTIC STEP ---
-const SUPABASE_URL = "https://kzebezxjvqvqnvmdjdyw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6ZWJlenhqdnF2cW52bWRqZHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MDI5NjksImV4cCI6MjA3NDk3ODk2OX0.2lF4FqU8JPrHds67vHOVEfqcpIGic_LjuK5HTT5X8u4";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-// --- END OF DIAGNOSTIC STEP ---
+// هام: تأكد من أنك تستخدم متغيرات البيئة وأن المفاتيح ليست مكتوبة هنا مباشرة
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // --- Middleware to check for a valid user token ---
 const authCheck = async (req, res, next) => {
@@ -29,26 +23,21 @@ const authCheck = async (req, res, next) => {
     next();
 };
 
-
 // --- API ROUTES ---
-// Vercel automatically routes requests starting with /api/ to this file.
-// We define the routes here WITHOUT the /api prefix.
-
-// --- Authentication Endpoints ---
-app.post('/signup', async (req, res) => {
+// تم استبدال كل 'app' بـ 'router'
+router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
-        const email = `${studentId}@chilli-app.io`; // Create a unique, fake email for auth
+        const email = `${studentId}@chilli-app.io`;
         
         const { data: { user, session }, error: authError } = await supabase.auth.signUp({ email, password });
         if (authError) {
             if (authError.message.includes("User already registered")) {
                 return res.status(400).json({ error: "هذا الرقم الجامعي مسجل بالفعل." });
             }
-            throw authError; // Throw other auth errors
+            throw authError;
         }
 
-        // If signup is successful, add user profile and wallet to public tables
         await supabase.from('users').insert({ id: user.id, name, studentId });
         await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
         
@@ -59,7 +48,7 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-app.post('/login', async (req, res) => {
+router.post('/login', async (req, res) => {
     try {
         const { studentId, password } = req.body;
         const email = `${studentId}@chilli-app.io`;
@@ -76,14 +65,11 @@ app.post('/login', async (req, res) => {
     }
 });
 
-
-// --- Public Endpoints ---
-app.get('/menu', async (req, res) => {
+router.get('/menu', async (req, res) => {
     try {
         const { data, error } = await supabase.from('menu').select('*');
         if (error) throw error;
         
-        // Group menu items by category before sending
         const menuByCategory = data.reduce((acc, item) => {
             if (!acc[item.category]) acc[item.category] = [];
             acc[item.category].push(item);
@@ -97,9 +83,7 @@ app.get('/menu', async (req, res) => {
     }
 });
 
-
-// --- Protected Endpoints (Require Authentication) ---
-app.get('/user-details', authCheck, async (req, res) => {
+router.get('/user-details', authCheck, async (req, res) => {
     try {
         const { data: userData, error: userError } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
         const { data: walletData, error: walletError } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
@@ -113,7 +97,7 @@ app.get('/user-details', authCheck, async (req, res) => {
     }
 });
 
-app.get('/orders', authCheck, async (req, res) => {
+router.get('/orders', authCheck, async (req, res) => {
     try {
         const { data, error } = await supabase.from('orders').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
         if (error) throw error;
@@ -124,7 +108,7 @@ app.get('/orders', authCheck, async (req, res) => {
     }
 });
 
-app.post('/process-wallet-order', authCheck, async (req, res) => {
+router.post('/process-wallet-order', authCheck, async (req, res) => {
     const { items, notes } = req.body;
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     try {
@@ -146,7 +130,7 @@ app.post('/process-wallet-order', authCheck, async (req, res) => {
     }
 });
 
-app.post('/start-paymob-payment', authCheck, async (req, res) => {
+router.post('/start-paymob-payment', authCheck, async (req, res) => {
     try {
         const { items } = req.body;
         const { data: user } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
@@ -154,7 +138,6 @@ app.post('/start-paymob-payment', authCheck, async (req, res) => {
         const amountCents = Math.round(totalPrice * 100);
         const merchantOrderId = `chilli-${Date.now()}`;
 
-        // Paymob Flow
         const authResponse = await axios.post("https://accept.paymob.com/api/auth/tokens", { api_key: process.env.PAYMOB_API_KEY });
         const authToken = authResponse.data.token;
 
@@ -175,24 +158,19 @@ app.post('/start-paymob-payment', authCheck, async (req, res) => {
     }
 });
 
-// Webhook for Paymob to call
-app.post('/confirm-paymob-callback', async (req, res) => {
+router.post('/confirm-paymob-callback', async (req, res) => {
     try {
         const { obj } = req.body;
         if (obj && obj.success === true) {
             const paymobOrderId = obj.order.id;
-            // Update the order in our database
             await supabase.from('orders').update({ paymentMethod: 'Card', status: 'قيد التحضير' }).eq('id', paymobOrderId);
             console.log(`Order ${paymobOrderId} confirmed successfully via callback.`);
         }
     } catch (error) {
         console.error(`Failed to process Paymob callback:`, error);
     }
-    // Always respond with 200 to let Paymob know we received it.
     res.status(200).send();
 });
 
-
-// Export the app for Vercel's serverless environment
-module.exports = app;
-
+// تم تصدير الراوتر ليتم استخدامه في الملف الرئيسي
+module.exports = router;
