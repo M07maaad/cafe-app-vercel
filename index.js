@@ -1,22 +1,26 @@
-// هذا هو الملف الرئيسي الجديد في جذر المشروع
-// وهو نقطة الدخول للتطبيق بأكمله على Vercel
+// هذا هو الملف الرئيسي في جذر المشروع
 
 const express = require('express');
 const path = require('path');
-const apiRoutes = require('./api/index.js'); // استيراد ملف الـ API
+const apiRoutes = require('./api/index.js');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// 1. استخدم الراوتر الخاص بالـ API لكل الطلبات التي تبدأ بـ /api
+// استخدم الراوتر الخاص بالـ API لكل الطلبات التي تبدأ بـ /api
 app.use('/api', apiRoutes);
 
-// 2. قدم الملفات الثابتة (HTML/CSS/JS) من مجلد public
+// قدم الملفات الثابتة (HTML/CSS/JS) من مجلد public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 3. لأي طلب آخر لا يتطابق مع ما سبق، أرجع له ملف الواجهة الأمامية
+// لأي طلب آخر لا يتطابق مع ما سبق، أرجع له ملف index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Vercel يتولى تشغيل الخادم، لذلك لا نحتاج إلى app.listen
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 module.exports = app;
+
