@@ -113,7 +113,7 @@ router.get('/orders', authCheck, async (req, res) => {
     }
 });
 
-// --- ENDPOINT FOR ORDER TRACKING (Publicly accessible but secure by checking user_id) ---
+// --- ENDPOINT FOR ORDER TRACKING ---
 router.get('/order-status/:id', authCheck, async (req, res) => {
     try {
         const { id } = req.params;
@@ -121,7 +121,6 @@ router.get('/order-status/:id', authCheck, async (req, res) => {
             .from('orders')
             .select('status')
             .eq('id', id)
-            // .eq('user_id', req.user.id) // Optional: Uncomment to make tracking private to the user
             .single();
 
         if (error || !data) {
@@ -169,11 +168,9 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
         const amountCents = Math.round(totalPrice * 100);
 
         // --- Paymob API Flow ---
-        // 1. Authentication Request
         const authResponse = await axios.post("https://accept.paymob.com/api/auth/tokens", { api_key: process.env.PAYMOB_API_KEY });
         const authToken = authResponse.data.token;
 
-        // 2. Order Registration Request
         const orderPayload = { 
             auth_token: authToken, 
             delivery_needed: "false", 
@@ -184,7 +181,6 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
         const orderResponse = await axios.post("https://accept.paymob.com/api/ecommerce/orders", orderPayload);
         const paymobOrderId = orderResponse.data.id;
 
-        // 3. Create a PENDING order in our DB
         await supabase.from('orders').insert({ 
             id: paymobOrderId, 
             user_id: req.user.id, 
@@ -194,7 +190,6 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
             status: 'الدفع معلق' 
         });
 
-        // 4. Payment Key Request
         const paymentKeyPayload = { 
             auth_token: authToken, 
             amount_cents: amountCents, 
@@ -206,7 +201,7 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
                 first_name: user.name.split(' ')[0] || "NA", 
                 last_name: user.name.split(' ').slice(1).join(' ') || "NA", 
                 email: `user-${user.studentId}@chilli-app.io`, 
-                phone_number: "+201208087322", // Default phone
+                phone_number: "+201208087322",
                 apartment: "NA", floor: "NA", street: "NA", building: "NA", 
                 shipping_method: "NA", postal_code: "NA", city: "NA", 
                 country: "EG", state: "NA" 
@@ -214,7 +209,6 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
         };
         const paymentKeyResponse = await axios.post("https://accept.paymob.com/api/acceptance/payment_keys", paymentKeyPayload);
         
-        // 5. Send redirect URL to frontend
         const redirectUrl = `https://accept.paymob.com/api/acceptance/iframes/${process.env.PAYMOB_IFRAME_ID}?payment_token=${paymentKeyResponse.data.token}`;
         res.status(200).json({ redirectUrl });
 
@@ -228,17 +222,14 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
 router.post('/confirm-paymob-callback', async (req, res) => {
     try {
         const { obj } = req.body;
-        // Check if transaction was successful
         if (obj && obj.success === true) {
             const paymobOrderId = obj.order.id;
-            // Update the order in our database from 'Card_Pending' to 'Card'
             await supabase.from('orders').update({ paymentMethod: 'Card', status: 'قيد التحضير' }).eq('id', paymobOrderId);
             console.log(`Order ${paymobOrderId} confirmed successfully via callback.`);
         }
     } catch (error) {
         console.error(`Failed to process Paymob callback:`, error);
     }
-    // Always respond with 200 to let Paymob know we received it.
     res.status(200).send();
 });
 
