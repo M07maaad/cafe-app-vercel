@@ -43,8 +43,8 @@ router.post('/signup', async (req, res) => {
         res.status(200).json({ session, user });
     } catch (error) {
         console.error("Signup Error:", error.message);
-        // --- تعديل مؤقت لكشف الخطأ الحقيقي ---
-        res.status(500).json({ error: error.message });
+        // --- تم إرجاع رسالة الخطأ الاحترافية ---
+        res.status(500).json({ error: "An unexpected error occurred during signup." });
     }
 });
 
@@ -65,7 +65,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// ... باقي الكود يبقى كما هو ...
 router.get('/menu', async (req, res) => {
     try {
         const { data, error } = await supabase.from('menu').select('*');
