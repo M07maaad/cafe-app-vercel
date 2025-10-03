@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دخول لوحة التحكم - Chilli</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #1d1d1d; color: #f1faee; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background: #2b2b2b; padding: 40px; border-radius: 15px; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: #e63946; }
+        .login-input { width: calc(100% - 24px); padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #555; background: #333; color: #f1faee; font-family: 'Tajawal', sans-serif; }
+        .login-btn { width: 100%; padding: 12px; font-size: 1.1em; background-image: linear-gradient(45deg, #fb5607, #e63946); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; }
+        .error-msg { color: #e63946; min-height: 20px; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>لوحة تحكم Chilli</h1>
+        <p>الرجاء إدخال كلمة المرور للوصول.</p>
+        <p id="error-msg" class="error-msg"></p>
+        <input type="password" id="password-input" class="login-input" placeholder="كلمة المرور">
+        <button class="login-btn" onclick="handleLogin()">دخول</button>
+    </div>
+
+    <script>
+        async function handleLogin() {
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('error-msg');
+            if (!password) {
+                errorEl.textContent = 'الرجاء إدخال كلمة المرور.';
+                return;
+            }
+            // For simplicity, we just check if a password is valid by trying to fetch orders.
+            // This avoids a dedicated login endpoint.
+            try {
+                const response = await fetch('/api/all-orders', {
+                    headers: { 'Authorization': `Bearer ${password}` }
+                });
+                if (!response.ok) {
+                    throw new Error('كلمة المرور غير صحيحة.');
+                }
+                // If successful, save the password and redirect
+                localStorage.setItem('dashboardPassword', password);
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+        // Allow pressing Enter to login
+        document.getElementById('password-input').addEventListener('keyup', function(event) {
+            if (event.key === "Enter") {
+                handleLogin();
+            }
+        });
+    </script>
+</body>
+</html>
