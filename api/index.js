@@ -27,7 +27,6 @@ const authCheck = async (req, res, next) => {
 router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
-        // --- FIX: Made the fake email more robust for validation ---
         const email = `user-${studentId}@chilli-app.io`;
         
         const { data: { user, session }, error: authError } = await supabase.auth.signUp({ email, password });
@@ -41,19 +40,17 @@ router.post('/signup', async (req, res) => {
         await supabase.from('users').insert({ id: user.id, name, studentId });
         await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
         
-        // --- FINAL STEP: Return the original, more professional error message ---
         res.status(200).json({ session, user });
     } catch (error) {
         console.error("Signup Error:", error.message);
-        // تم إرجاع رسالة الخطأ العامة بعد انتهاء التصحيح
-        res.status(500).json({ error: "An unexpected error occurred during signup." });
+        // --- تعديل مؤقت لكشف الخطأ الحقيقي ---
+        res.status(500).json({ error: error.message });
     }
 });
 
 router.post('/login', async (req, res) => {
     try {
         const { studentId, password } = req.body;
-        // --- FIX: Made the fake email more robust for validation ---
         const email = `user-${studentId}@chilli-app.io`;
         
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -64,11 +61,11 @@ router.post('/login', async (req, res) => {
         res.status(200).json(data);
     } catch (error) {
         console.error("Login Error:", error.message);
-        // تم إرجاع رسالة الخطأ العامة بعد انتهاء التصحيح
         res.status(500).json({ error: "An unexpected error occurred during login." });
     }
 });
 
+// ... باقي الكود يبقى كما هو ...
 router.get('/menu', async (req, res) => {
     try {
         const { data, error } = await supabase.from('menu').select('*');
