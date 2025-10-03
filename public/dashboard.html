@@ -100,31 +100,31 @@
             orderCountEl.textContent = orders.length;
             noOrdersMsg.style.display = orders.length === 0 ? 'block' : 'none';
 
-            const newOrderIds = new Set(orders.map(o => o.id));
+            const newOrderIds = new Set(orders.map(o => o.display_id));
             let hasNewOrder = false;
             
             for (const order of orders) {
-                if (!currentOrderIds.has(order.id)) {
+                if (!currentOrderIds.has(order.display_id)) {
                     hasNewOrder = true;
                     break;
                 }
             }
-            if (hasNewOrder && document.hidden === false) { // Only play if tab is active
+            if (hasNewOrder && document.hidden === false) {
                 playNotificationSound();
             }
 
             document.querySelectorAll('.order-card').forEach(card => {
-                if (!newOrderIds.has(parseInt(card.dataset.orderId))) {
+                if (!newOrderIds.has(card.dataset.orderId)) {
                     card.remove();
                 }
             });
             
             orders.forEach(order => {
-                if (document.querySelector(`.order-card[data-order-id='${order.id}']`)) return;
+                if (document.querySelector(`.order-card[data-order-id='${order.display_id}']`)) return;
 
                 const card = document.createElement('div');
                 card.className = 'order-card new-order';
-                card.dataset.orderId = order.id;
+                card.dataset.orderId = order.display_id;
 
                 const itemsHtml = order.items.map(item => `<li><span class="item-name">${item.name}</span><span class="item-quantity">x${item.quantity}</span></li>`).join('');
                 const notesHtml = order.notes ? `<div class="notes"><strong>ملاحظات:</strong> ${order.notes}</div>` : '';
@@ -132,7 +132,7 @@
 
                 card.innerHTML = `
                     <div class="card-header">
-                        <span class="order-id">#${order.id}</span>
+                        <span class="order-id">${order.display_id}</span>
                         <span class="order-time">${new Date(order.created_at).toLocaleTimeString('ar-EG')}</span>
                     </div>
                     <p class="customer-name">العميل: <strong>${order.users.name} (${order.users.studentId})</strong></p>
@@ -140,8 +140,8 @@
                     ${notesHtml}
                     ${paymentHtml}
                     <div class="action-buttons">
-                        <button class="action-btn reject" onclick="rejectOrder(${order.id})">رفض</button>
-                        <button class="action-btn ready" onclick="updateOrderStatus(${order.id})">جاهز للاستلام</button>
+                        <button class="action-btn reject" onclick="rejectOrder('${order.display_id}')">رفض</button>
+                        <button class="action-btn ready" onclick="updateOrderStatus('${order.display_id}')">جاهز للاستلام</button>
                     </div>
                 `;
                 ordersContainer.prepend(card);
@@ -169,7 +169,7 @@
         async function rejectOrder(orderId) {
             const reason = prompt("ما هو سبب رفض الطلب؟ (مثال: الصنف غير متوفر)");
             if (!reason || reason.trim() === '') {
-                return; // User cancelled the prompt
+                return;
             }
 
             try {
