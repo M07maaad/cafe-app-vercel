@@ -27,7 +27,8 @@ const authCheck = async (req, res, next) => {
 router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
-        const email = `${studentId}@chilli-app.io`;
+        // --- FIX: Made the fake email more robust for validation ---
+        const email = `user-${studentId}@chilli-app.io`;
         
         const { data: { user, session }, error: authError } = await supabase.auth.signUp({ email, password });
         if (authError) {
@@ -40,18 +41,20 @@ router.post('/signup', async (req, res) => {
         await supabase.from('users').insert({ id: user.id, name, studentId });
         await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
         
+        // --- FINAL STEP: Return the original, more professional error message ---
         res.status(200).json({ session, user });
     } catch (error) {
         console.error("Signup Error:", error.message);
-        // هذا هو السطر الذي عدلناه لتصحيح الأخطاء - وهو الآن داخل كود سليم
-        res.status(500).json({ error: error.message });
+        // تم إرجاع رسالة الخطأ العامة بعد انتهاء التصحيح
+        res.status(500).json({ error: "An unexpected error occurred during signup." });
     }
-}); // <-- كان القوس الناقص هنا على الأرجح
+});
 
 router.post('/login', async (req, res) => {
     try {
         const { studentId, password } = req.body;
-        const email = `${studentId}@chilli-app.io`;
+        // --- FIX: Made the fake email more robust for validation ---
+        const email = `user-${studentId}@chilli-app.io`;
         
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
@@ -61,7 +64,8 @@ router.post('/login', async (req, res) => {
         res.status(200).json(data);
     } catch (error) {
         console.error("Login Error:", error.message);
-        res.status(500).json({ error: error.message });
+        // تم إرجاع رسالة الخطأ العامة بعد انتهاء التصحيح
+        res.status(500).json({ error: "An unexpected error occurred during login." });
     }
 });
 
@@ -147,7 +151,7 @@ router.post('/start-paymob-payment', authCheck, async (req, res) => {
 
         await supabase.from('orders').insert({ id: paymobOrderId, user_id: req.user.id, items, totalPrice, paymentMethod: 'Card_Pending', status: 'الدفع معلق' });
 
-        const paymentKeyPayload = { auth_token: authToken, amount_cents: amountCents, expiration: 3600, order_id: paymobOrderId, currency: "EGP", integration_id: parseInt(process.env.PAYMOB_INTEGRATION_ID), billing_data: { first_name: user.name.split(' ')[0], last_name: user.name.split(' ').slice(1).join(' ') || user.name.split(' ')[0], email: `${user.studentId}@chilli-app.io`, phone_number: "+201208087322", apartment: "NA", floor: "NA", street: "NA", building: "NA", shipping_method: "NA", postal_code: "NA", city: "NA", country: "EG", state: "NA" }};
+        const paymentKeyPayload = { auth_token: authToken, amount_cents: amountCents, expiration: 3600, order_id: paymobOrderId, currency: "EGP", integration_id: parseInt(process.env.PAYMOB_INTEGRATION_ID), billing_data: { first_name: user.name.split(' ')[0], last_name: user.name.split(' ').slice(1).join(' ') || user.name.split(' ')[0], email: `user-${user.studentId}@chilli-app.io`, phone_number: "+201208087322", apartment: "NA", floor: "NA", street: "NA", building: "NA", shipping_method: "NA", postal_code: "NA", city: "NA", country: "EG", state: "NA" }};
         const paymentKeyResponse = await axios.post("https://accept.paymob.com/api/acceptance/payment_keys", paymentKeyPayload);
         
         const redirectUrl = `https://accept.paymob.com/api/acceptance/iframes/${process.env.PAYMOB_IFRAME_ID}?payment_token=${paymentKeyResponse.data.token}`;
