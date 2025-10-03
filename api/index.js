@@ -7,45 +7,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// This helper function initializes Supabase and checks for environment variables on each request.
-// This is more robust for debugging deployment issues.
-const getSupabaseClient = () => {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-        throw new Error("Server configuration error: Supabase URL or Key is missing. Please check Vercel environment variables.");
-    }
-    return createClient(supabaseUrl, supabaseKey);
-};
+// --- The Standard and Correct Way to Initialize ---
+// Initialize the Supabase client once at the top level.
+// This is the most stable and recommended pattern.
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // Middleware to check JWT token
 const authCheck = async (req, res, next) => {
-    try {
-        const supabase = getSupabaseClient();
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided.' });
-        }
-        
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (error || !user) {
-            return res.status(401).json({ error: 'Invalid token.' });
-        }
-
-        req.user = user;
-        next();
-    } catch (error) {
-        console.error("Auth Check Error:", error.message);
-        return res.status(500).json({ error: error.message });
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'No token provided.' });
     }
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token.' });
+    }
+    req.user = user;
+    next();
 };
 
 // --- API ROUTES ---
 
 app.post('/signup', async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { name, studentId, password } = req.body;
         const email = `${studentId}@chilli-app.io`;
         
@@ -63,13 +47,12 @@ app.post('/signup', async (req, res) => {
         res.status(200).json({ session, user });
     } catch (error) {
         console.error("Signup Error:", error.message);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "An unexpected error occurred during signup." });
     }
 });
 
 app.post('/login', async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { studentId, password } = req.body;
         const email = `${studentId}@chilli-app.io`;
         
@@ -81,13 +64,12 @@ app.post('/login', async (req, res) => {
         res.status(200).json(data);
     } catch (error) {
         console.error("Login Error:", error.message);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "An unexpected error occurred during login." });
     }
 });
 
 app.get('/menu', async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { data, error } = await supabase.from('menu').select('*');
         if (error) throw error;
         
@@ -107,7 +89,6 @@ app.get('/menu', async (req, res) => {
 // Protected routes
 app.get('/user-details', authCheck, async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { data: userData, error: userError } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
         const { data: walletData, error: walletError } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
         
@@ -116,13 +97,12 @@ app.get('/user-details', authCheck, async (req, res) => {
         res.status(200).json({ ...userData, ...walletData });
     } catch (error) {
         console.error("User Details Error:", error.message);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Could not fetch user details." });
     }
 });
 
 app.get('/orders', authCheck, async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { data, error } = await supabase.from('orders').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
         if (error) throw error;
         res.status(200).json(data);
@@ -136,7 +116,6 @@ app.post('/process-wallet-order', authCheck, async (req, res) => {
     const { items, notes } = req.body;
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     try {
-        const supabase = getSupabaseClient();
         const { data: wallet, error: fetchError } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
         if (fetchError || !wallet || wallet.balance < totalPrice) {
             return res.status(400).json({ error: "رصيدك غير كافٍ." });
@@ -157,7 +136,6 @@ app.post('/process-wallet-order', authCheck, async (req, res) => {
 
 app.post('/start-paymob-payment', authCheck, async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { items } = req.body;
         const { data: user } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
         const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -186,7 +164,6 @@ app.post('/start-paymob-payment', authCheck, async (req, res) => {
 
 app.post('/confirm-paymob-callback', async (req, res) => {
     try {
-        const supabase = getSupabaseClient();
         const { obj } = req.body;
         if (obj && obj.success === true) {
             const paymobOrderId = obj.order.id;
