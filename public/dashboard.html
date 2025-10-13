@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - Chilli</title>
+    <title>لوحة التحكم</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --background: #f4f7f6; 
-            --text-color: #333; 
+            --primary-accent: #00CFE8; /* Vibrant Cyan */
+            --secondary-accent: #8A2BE2; /* Blue Violet */
+            --danger: #e74c3c;
+            --success: #28a745;
+            --warning: #ffc107;
+            --font-family: 'Tajawal', sans-serif;
+            --background: #f8f9fa; 
+            --text-color: #212529; 
             --card-bg: #ffffff; 
             --shadow: rgba(0, 0, 0, 0.08); 
-            --green: #2ecc71; 
-            --orange: #e67e22; 
-            --red: #e74c3c; 
-            --blue: #3498db; 
-            --primary: #e63946;
-            --grey: #7f8c8d;
+            --border-color: #dee2e6;
         }
         body { 
-            font-family: 'Tajawal', sans-serif; 
+            font-family: var(--font-family); 
             background-color: var(--background); 
             color: var(--text-color); 
             margin: 0; 
@@ -37,11 +38,12 @@
             flex-wrap: wrap; 
         }
         .header h1 { 
-            color: var(--primary); 
+            color: var(--secondary-accent); 
             font-weight: 800;
+            text-shadow: 0 0 10px rgba(138, 43, 226, 0.2);
         }
         #logout-btn { 
-            background: var(--red); 
+            background: var(--danger); 
             color: white; 
             border: none; 
             padding: 10px 20px; 
@@ -57,7 +59,7 @@
         .tabs {
             display: flex;
             gap: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border-color);
             margin-bottom: 25px;
         }
         .tab-btn {
@@ -67,7 +69,7 @@
             background: none;
             border: none;
             cursor: pointer;
-            color: var(--grey);
+            color: #6c757d;
             position: relative;
             transition: color 0.3s;
         }
@@ -78,23 +80,19 @@
             left: 0;
             width: 100%;
             height: 3px;
-            background: var(--primary);
+            background: var(--primary-accent);
             transform: scaleX(0);
             transition: transform 0.3s ease;
         }
         .tab-btn.active {
-            color: var(--primary);
+            color: var(--primary-accent);
         }
         .tab-btn.active::after {
             transform: scaleX(1);
         }
 
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         .dashboard-section { 
             background: var(--card-bg); 
@@ -116,23 +114,23 @@
         .form-group input { 
             flex-grow: 1; 
             padding: 12px; 
-            border: 1px solid #ccc; 
+            border: 1px solid var(--border-color); 
             border-radius: 8px; 
             font-family: 'Tajawal', sans-serif;
             font-size: 1em;
         }
         .form-group button { 
-            background: var(--blue); 
+            background-image: linear-gradient(45deg, var(--secondary-accent), var(--primary-accent));
             color: white; 
             border: none; 
             padding: 12px 22px; 
             border-radius: 8px; 
             cursor: pointer; 
             font-weight: 700;
-            transition: background-color 0.2s;
+            transition: opacity 0.2s;
         }
         .form-group button:hover {
-            background: #2980b9;
+            opacity: 0.9;
         }
 
         #wallet-result, #wallet-message { 
@@ -140,13 +138,11 @@
             padding: 15px; 
             border-radius: 8px; 
         }
-        #wallet-result {
-            border: 1px solid #eee;
-        }
+        #wallet-result { border: 1px solid var(--border-color); }
         #wallet-result.hidden { display: none; }
         #wallet-result p { margin: 8px 0; font-size: 1.1em; }
-        #wallet-message.success { background: #e0f2f1; color: #00796b; }
-        #wallet-message.error { background: #fbe9e7; color: #c62828; }
+        #wallet-message.success { background: #d4edda; color: #155724; }
+        #wallet-message.error { background: #f8d7da; color: #721c24; }
         
         .section-header {
             display: flex;
@@ -157,7 +153,7 @@
         .stats { 
             font-size: 1.2em; 
             font-weight: 700; 
-            background: #eee;
+            background: #e9ecef;
             padding: 8px 15px;
             border-radius: 20px;
         }
@@ -172,27 +168,26 @@
             border-radius: 15px; 
             box-shadow: 0 4px 12px var(--shadow); 
             padding: 20px; 
-            border-top: 5px solid var(--orange); 
+            border-top: 5px solid var(--warning); 
         }
         .order-card.new-order { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 4px 12px var(--shadow), 0 0 0 0 rgba(230, 126, 34, 0.7); } 70% { box-shadow: 0 4px 12px var(--shadow), 0 0 0 20px rgba(230, 126, 34, 0); } 100% { box-shadow: 0 4px 12px var(--shadow), 0 0 0 0 rgba(230, 126, 34, 0); } }
+        @keyframes pulse { 0% { box-shadow: 0 4px 12px var(--shadow), 0 0 0 0 rgba(255, 193, 7, 0.7); } 70% { box-shadow: 0 4px 12px var(--shadow), 0 0 0 20px rgba(255, 193, 7, 0); } 100% { box-shadow: 0 4px 12px var(--shadow), 0 0 0 0 rgba(255, 193, 7, 0); } }
         .card-header { 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            border-bottom: 1px solid #eee; 
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px; 
             margin-bottom: 15px; 
         }
         .order-id { font-size: 1.6em; font-weight: 800; color: #333; }
         .customer-name { font-weight: 700; margin-bottom: 15px; font-size: 1.1em; }
         .items-list { list-style: none; padding: 0; margin: 15px 0; }
-        .items-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+        .items-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f8f9fa; }
         .items-list li:last-child { border-bottom: none; }
         .item-name { font-weight: 500; }
-        .item-quantity { font-weight: 700; background: #eee; padding: 2px 8px; border-radius: 5px; }
-        .notes { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 8px; margin-top: 15px; }
-        
+        .item-quantity { font-weight: 700; background: #e9ecef; padding: 2px 8px; border-radius: 5px; }
+        .notes { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px; margin-top: 15px; }
         .payment-method { 
             font-weight: 700; 
             text-align: center; 
@@ -202,14 +197,13 @@
             font-size: 1.1em;
         }
         .payment-method.wallet { 
-            background: #e0f2f1; 
-            color: #00796b; 
+            background: #d4edda; 
+            color: #155724; 
         }
         .payment-method.card { 
-            background: #e3f2fd; 
-            color: #1565c0; 
+            background: #d1ecf1; 
+            color: #0c5460; 
         }
-
         .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         .action-btn { 
             padding: 12px; 
@@ -222,15 +216,15 @@
             transition: opacity 0.2s;
         }
         .action-btn:hover { opacity: 0.9; }
-        .action-btn.ready { background: var(--green); }
-        .action-btn.reject { background: var(--red); }
-        #no-orders-msg { text-align: center; font-size: 1.5em; color: #777; padding: 50px; grid-column: 1 / -1; }
+        .action-btn.ready { background: var(--success); }
+        .action-btn.reject { background: var(--danger); }
+        #no-orders-msg { text-align: center; font-size: 1.5em; color: #6c757d; padding: 50px; grid-column: 1 / -1; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>لوحة التحكم - Chilli</h1>
+            <h1>لوحة التحكم</h1>
             <button id="logout-btn" onclick="handleLogout()">تسجيل الخروج</button>
         </div>
 
