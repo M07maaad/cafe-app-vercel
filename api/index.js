@@ -8,7 +8,7 @@ router.use(express.json());
 // Initialize Supabase client
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// --- USER AUTH MIDDLEWARE ---
+// --- AUTH MIDDLEWARE ---
 const userAuthCheck = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token provided.' });
@@ -20,7 +20,6 @@ const userAuthCheck = async (req, res, next) => {
     next();
 };
 
-// --- DASHBOARD AUTH MIDDLEWARE ---
 const dashboardAuthCheck = (req, res, next) => {
     const password = req.headers.authorization?.split(' ')[1];
     if (!password || password !== process.env.DASHBOARD_PASSWORD) {
@@ -29,7 +28,7 @@ const dashboardAuthCheck = (req, res, next) => {
     next();
 };
 
-// --- USER-FACING ROUTES ---
+// ... (Existing /signup, /login, /menu routes remain the same) ...
 router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
@@ -71,6 +70,8 @@ router.get('/menu', async (req, res) => {
     }
 });
 
+
+// ... (Existing user-facing routes remain the same) ...
 router.get('/user-details', userAuthCheck, async (req, res) => {
     try {
         const { data: u, error: uErr } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
@@ -195,6 +196,8 @@ router.post('/confirm-paymob-callback', async (req, res) => {
 
 
 // --- DASHBOARD-ONLY ROUTES ---
+
+// ... (Existing dashboard routes: /all-orders, /update-order-status, etc. remain the same)
 router.get('/all-orders', dashboardAuthCheck, async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -241,7 +244,6 @@ router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
     }
 });
 
-// NEW: Find user by student ID for wallet charging
 router.post('/find-user', dashboardAuthCheck, async (req, res) => {
     const { studentId } = req.body;
     if (!studentId) return res.status(400).json({ error: 'Student ID is required.' });
@@ -258,7 +260,6 @@ router.post('/find-user', dashboardAuthCheck, async (req, res) => {
     }
 });
 
-// NEW: Charge a user's wallet
 router.post('/charge-wallet', dashboardAuthCheck, async (req, res) => {
     const { userId, amount } = req.body;
     if (!userId || !amount || parseFloat(amount) <= 0) {
@@ -278,6 +279,79 @@ router.post('/charge-wallet', dashboardAuthCheck, async (req, res) => {
         res.status(500).json({ error: 'فشل شحن الرصيد.' });
     }
 });
+
+// --- NEW ANALYTICS ENDPOINT ---
+router.get('/analytics', dashboardAuthCheck, async (req, res) => {
+    const { period = 'day' } = req.query; // 'day', 'week', 'month'
+    
+    try {
+        let startDate = new Date();
+        if (period === 'day') {
+            startDate.setHours(0, 0, 0, 0);
+        } else if (period === 'week') {
+            startDate.setDate(startDate.getDate() - 7);
+            startDate.setHours(0, 0, 0, 0);
+        } else if (period === 'month') {
+            startDate.setMonth(startDate.getMonth() - 1);
+            startDate.setHours(0, 0, 0, 0);
+        }
+
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select('items, totalPrice, created_at, user_id, users(name, studentId)')
+            .gte('created_at', startDate.toISOString())
+            .in('status', ['جاهز للاستلام', 'قيد التحضير']); // Only count completed/in-progress orders
+
+        if (error) throw error;
+
+        // 1. Top Selling Items
+        const itemCounts = {};
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+            });
+        });
+        const topItems = Object.entries(itemCounts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([name, count]) => ({ name, count }));
+
+        // 2. Top Customers
+        const customerSpending = {};
+        orders.forEach(order => {
+            const customerName = order.users.name || `User ${order.user_id}`;
+            customerSpending[customerName] = (customerSpending[customerName] || 0) + parseFloat(order.totalPrice);
+        });
+        const topCustomers = Object.entries(customerSpending)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([name, total]) => ({ name, total: total.toFixed(2) }));
+            
+        // 3. Peak Hours
+        const hourCounts = Array(24).fill(0);
+        orders.forEach(order => {
+            const hour = new Date(order.created_at).getHours();
+            hourCounts[hour]++;
+        });
+        const peakHours = hourCounts.map((count, hour) => ({ hour, count })).sort((a,b) => b.count - a.count);
+
+        // 4. Total Revenue
+        const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.totalPrice), 0);
+        
+        res.status(200).json({
+            totalOrders: orders.length,
+            totalRevenue: totalRevenue.toFixed(2),
+            topItems,
+            topCustomers,
+            peakHours,
+        });
+
+    } catch (error) {
+        console.error('Analytics Error:', error.message);
+        res.status(500).json({ error: "Failed to fetch analytics." });
+    }
+});
+
 
 module.exports = router;
 
