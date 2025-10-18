@@ -18,6 +18,7 @@
             --shadow-color: rgba(0, 0, 0, 0.2);
             --success: #28a745;
             --danger: #e74c3c;
+            --blue: #3498db;
         }
 
         body { 
@@ -47,7 +48,16 @@
         .dashboard-section { background: var(--card-bg); border-radius: 4px; box-shadow: 0 5px 20px var(--shadow-color); padding: 25px; border: 1px solid var(--border-color); }
         .dashboard-section h2 { margin-top: 0; font-size: 1.5em; }
         
-        /* Orders & Wallet Section */
+        /* Wallet Section Styles */
+        .form-group { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+        .form-group input { flex-grow: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; font-family: 'Tajawal'; background: var(--dark-bg); color: var(--text-light); }
+        .form-group button { background: var(--blue); color: white; border: none; padding: 12px 22px; border-radius: 4px; cursor: pointer; font-weight: 700; }
+        #wallet-result, #wallet-message { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        #wallet-result.hidden { display: none; }
+        #wallet-message.success { background: rgba(40, 167, 69, 0.2); color: var(--success); }
+        #wallet-message.error { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
+        
+        /* Orders Section Styles */
         #orders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
         .order-card { background: var(--card-bg); border-radius: 4px; box-shadow: 0 4px 12px var(--shadow-color); padding: 20px; border-top: 5px solid var(--primary-yellow); }
         .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
@@ -61,7 +71,7 @@
         .action-btn.reject { background: var(--danger); }
         #no-orders-msg { text-align: center; font-size: 1.5em; color: #888; padding: 50px; grid-column: 1 / -1; }
 
-        /* Analytics Section */
+        /* Analytics Section Styles */
         .analytics-filters { display: flex; gap: 10px; margin-bottom: 20px; }
         .filter-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-light); padding: 8px 15px; border-radius: 50px; cursor: pointer; font-weight: 700; }
         .filter-btn.active { background: var(--primary-yellow); color: var(--text-dark); border-color: var(--primary-yellow); }
@@ -92,11 +102,25 @@
 
         <main>
             <div id="wallet-section" class="tab-content dashboard-section">
-                <!-- Wallet Management HTML remains the same -->
+                <h2>شحن رصيد طالب</h2>
+                <div class="form-group">
+                    <input type="text" id="student-id-search" placeholder="أدخل الرقم الجامعي للطالب...">
+                    <button onclick="findStudent()">بحث</button>
+                </div>
+                <div id="wallet-result" class="hidden">
+                    <p><strong>اسم الطالب:</strong> <span id="student-name"></span></p>
+                    <p><strong>الرصيد الحالي:</strong> <span id="current-balance"></span> جنيه</p>
+                    <hr>
+                    <div class="form-group">
+                        <input type="number" id="charge-amount" placeholder="أدخل المبلغ المراد شحنه">
+                        <button onclick="chargeWallet()">شحن الرصيد</button>
+                    </div>
+                </div>
+                <div id="wallet-message"></div>
             </div>
 
             <div id="orders-section" class="tab-content dashboard-section active">
-                <div id="orders-container">
+                 <div id="orders-container">
                     <p id="no-orders-msg">لا توجد طلبات قيد التحضير حاليًا...</p>
                 </div>
             </div>
@@ -141,17 +165,19 @@
 
     <script>
         let password;
-        
+        let foundUser = null;
+        let currentOrderIds = new Set();
+        let audioContext;
+
         document.addEventListener('DOMContentLoaded', () => {
             password = localStorage.getItem('dashboardPassword');
             if (!password) {
                 window.location.href = 'dashboard-login.html';
                 return;
             }
-            // Load initial tabs
             fetchOrders();
             setInterval(fetchOrders, 15000);
-            loadAnalytics('day'); // Load initial analytics
+            loadAnalytics('day', document.querySelector('.filter-btn[data-period="day"]'));
         });
         
         function showTab(tabName) {
@@ -168,11 +194,9 @@
         }
 
         // --- Analytics Logic ---
-        async function loadAnalytics(period, btnElement = null) {
-            if (btnElement) {
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                btnElement.classList.add('active');
-            }
+        async function loadAnalytics(period, btnElement) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
 
             document.getElementById('analytics-loader').classList.remove('hidden');
             document.getElementById('analytics-content').classList.add('hidden');
@@ -193,35 +217,165 @@
             document.getElementById('total-orders').textContent = data.totalOrders;
 
             const topItemsList = document.getElementById('top-items-list');
-            topItemsList.innerHTML = '';
-            data.topItems.forEach(item => {
-                topItemsList.innerHTML += `<li><span>${item.name}</span><span class="count">${item.count} مرة</span></li>`;
-            });
+            topItemsList.innerHTML = data.topItems.map(item => `<li><span>${item.name}</span><span class="count">${item.count} مرة</span></li>`).join('');
 
             const topCustomersList = document.getElementById('top-customers-list');
-            topCustomersList.innerHTML = '';
-            data.topCustomers.forEach(customer => {
-                topCustomersList.innerHTML += `<li><span>${customer.name}</span><span class="count">${customer.total} جنيه</span></li>`;
-            });
+            topCustomersList.innerHTML = data.topCustomers.map(customer => `<li><span>${customer.name}</span><span class="count">${customer.total} جنيه</span></li>`).join('');
 
             const peakHoursList = document.getElementById('peak-hours-list');
-            peakHoursList.innerHTML = '';
-            data.peakHours.slice(0, 3).forEach(hourData => {
+            peakHoursList.innerHTML = data.peakHours.slice(0, 3).map(hourData => {
                  const hour = hourData.hour % 12 || 12;
                  const ampm = hourData.hour >= 12 ? 'م' : 'ص';
-                 peakHoursList.innerHTML += `<li><span>الساعة ${hour} ${ampm}</span><span class="count">${hourData.count} طلب</span></li>`;
-            });
+                 return `<li><span>الساعة ${hour} ${ampm}</span><span class="count">${hourData.count} طلب</span></li>`;
+            }).join('');
             
             document.getElementById('analytics-loader').classList.add('hidden');
             document.getElementById('analytics-content').classList.remove('hidden');
         }
 
-        // --- Existing Orders & Wallet Logic ---
-        // These functions would be pasted here in full from the previous version.
-        // For brevity, I will add placeholders. In the final file, they are complete.
-        async function fetchOrders() { /* ... existing fetchOrders logic ... */ }
-        function renderOrders(orders) { /* ... existing renderOrders logic ... */ }
-        // The rest of the functions...
+        // --- Wallet Logic ---
+        async function findStudent() {
+            const studentId = document.getElementById('student-id-search').value.trim();
+            const resultDiv = document.getElementById('wallet-result');
+            const messageDiv = document.getElementById('wallet-message');
+            if (!studentId) return;
+
+            messageDiv.textContent = 'جاري البحث...';
+            messageDiv.className = '';
+            resultDiv.classList.add('hidden');
+            foundUser = null;
+
+            try {
+                const response = await fetch('/api/find-user', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` }, body: JSON.stringify({ studentId }) });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                foundUser = data.user;
+                document.getElementById('student-name').textContent = foundUser.name;
+                document.getElementById('current-balance').textContent = parseFloat(foundUser.balance).toFixed(2);
+                resultDiv.classList.remove('hidden');
+                messageDiv.textContent = '';
+            } catch (error) {
+                messageDiv.textContent = error.message;
+                messageDiv.className = 'error';
+            }
+        }
+
+        async function chargeWallet() {
+            const amount = document.getElementById('charge-amount').value;
+            const messageDiv = document.getElementById('wallet-message');
+            if (!foundUser || !amount || parseFloat(amount) <= 0) {
+                messageDiv.textContent = 'الرجاء البحث عن طالب أولاً وإدخال مبلغ صحيح.';
+                messageDiv.className = 'error';
+                return;
+            }
+            messageDiv.textContent = 'جاري الشحن...';
+            try {
+                const response = await fetch('/api/charge-wallet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` }, body: JSON.stringify({ userId: foundUser.id, amount }) });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                document.getElementById('current-balance').textContent = parseFloat(data.newBalance).toFixed(2);
+                messageDiv.textContent = `تم شحن الرصيد بنجاح! الرصيد الجديد هو ${parseFloat(data.newBalance).toFixed(2)} جنيه.`;
+                messageDiv.className = 'success';
+                document.getElementById('charge-amount').value = '';
+            } catch (error) {
+                messageDiv.textContent = `فشل الشحن: ${error.message}`;
+                messageDiv.className = 'error';
+            }
+        }
+
+        // --- Orders Logic ---
+        async function fetchOrders() {
+            try {
+                const response = await fetch('/api/all-orders', { headers: { 'Authorization': `Bearer ${password}` } });
+                if (!response.ok) {
+                    if (response.status === 401) handleLogout();
+                    throw new Error('Failed to fetch orders.');
+                }
+                const orders = await response.json();
+                renderOrders(orders);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function renderOrders(orders) {
+            const ordersContainer = document.getElementById('orders-container');
+            const noOrdersMsg = document.getElementById('no-orders-msg');
+            noOrdersMsg.style.display = orders.length === 0 ? 'block' : 'none';
+
+            const newOrderIds = new Set(orders.map(o => o.display_id));
+            if (newOrderIds.size > currentOrderIds.size && document.hidden === false) {
+                playNotificationSound();
+            }
+
+            ordersContainer.innerHTML = orders.length === 0 ? '<p id="no-orders-msg">لا توجد طلبات قيد التحضير حاليًا...</p>' : '';
+
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = 'order-card';
+                card.dataset.orderId = order.display_id;
+                const itemsHtml = order.items.map(item => `<li><span>${item.name}</span><span class="item-quantity">x${item.quantity}</span></li>`).join('');
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="order-id">${order.display_id}</span>
+                        <span>${new Date(order.created_at).toLocaleTimeString('ar-EG')}</span>
+                    </div>
+                    <p>العميل: <strong>${order.users.name} (${order.users.studentId})</strong></p>
+                    <ul class="items-list">${itemsHtml}</ul>
+                    ${order.notes ? `<div class="notes"><strong>ملاحظات:</strong> ${order.notes}</div>` : ''}
+                    <div class="action-buttons">
+                        <button class="action-btn reject" onclick="rejectOrder('${order.display_id}')">رفض</button>
+                        <button class="action-btn ready" onclick="updateOrderStatus('${order.display_id}')">جاهز للاستلام</button>
+                    </div>`;
+                ordersContainer.prepend(card);
+            });
+            currentOrderIds = newOrderIds;
+        }
+
+        async function updateOrderStatus(orderId) {
+            await handleOrderAction('/api/update-order-status', { orderId, status: 'جاهز للاستلام' }, 'فشل تحديث حالة الطلب.');
+        }
+
+        async function rejectOrder(orderId) {
+            const reason = prompt("ما هو سبب رفض الطلب؟ (مثال: الصنف غير متوفر)");
+            if (reason) {
+                await handleOrderAction('/api/reject-order', { orderId, reason }, 'فشل رفض الطلب.');
+            }
+        }
+
+        async function handleOrderAction(endpoint, body, errorMessage) {
+            try {
+                const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` }, body: JSON.stringify(body) });
+                if (!response.ok) throw new Error(errorMessage);
+                removeCardFromUI(body.orderId);
+            } catch (error) {
+                console.error(error);
+                alert(error.message);
+            }
+        }
+
+        function removeCardFromUI(orderId) {
+            const card = document.querySelector(`.order-card[data-order-id='${orderId}']`);
+            if (card) card.remove();
+            if (document.querySelectorAll('.order-card').length === 0) {
+                 document.getElementById('no-orders-msg').style.display = 'block';
+            }
+        }
+
+        function playNotificationSound() {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
     </script>
 </body>
 </html>
