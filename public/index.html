@@ -4,20 +4,23 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <title>Bélla Vita</title>
+  <title>Bélla Vita - Nexus</title>
   <style>
-    /* --- NEW THEME: "BELLA VITA" - Urban & Bold --- */
+    /* --- NEW THEME: "BELLA VITA" - Nexus Style --- */
     :root {
       --primary-yellow: #FDCB01;
       --primary-red: #D72323;
-      --dark-bg: #181818;
-      --card-bg: #222222;
-      --text-light: #FFFFFF;
-      --text-dark: #181818;
-      --border-color: #333;
+      --dark-bg: #121212;
+      --card-bg: #1E1E1E;
+      --text-light: #EAEAEA;
+      --text-dark: #121212;
+      --border-color: rgba(253, 203, 1, 0.2);
       --font-family: 'Tajawal', sans-serif;
       --header-font: 'Poppins', sans-serif;
+      --shadow-color: rgba(253, 203, 1, 0.1);
     }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     body { 
       font-family: var(--font-family); 
@@ -44,25 +47,32 @@
       text-align: center;
       letter-spacing: -2px;
       margin: 20px 0;
+      text-shadow: 0 0 10px var(--shadow-color), 0 0 20px var(--shadow-color);
+      text-transform: uppercase;
     }
     .auth-container { 
       max-width: 400px; 
       margin: 20px auto; 
       padding: 30px; 
       background: var(--card-bg);
-      border-radius: 10px; 
+      border-radius: 4px; 
       text-align: center; 
+      border: 1px solid var(--border-color);
     }
     .auth-input { 
       width: calc(100% - 24px); 
       padding: 12px; 
       margin-bottom: 15px; 
-      border-radius: 8px; 
+      border-radius: 4px; 
       border: 1px solid var(--border-color); 
       background: var(--dark-bg); 
       color: var(--text-light); 
       font-family: var(--font-family); 
       font-size: 1em;
+    }
+    .auth-input:focus {
+        outline: none;
+        border-color: var(--primary-yellow);
     }
     .auth-btn { 
       width: 100%; 
@@ -71,18 +81,26 @@
       background: var(--primary-red);
       color: white; 
       border: none; 
-      border-radius: 8px; 
+      border-radius: 4px; 
       cursor: pointer; 
       font-weight: 700; 
+      transition: all 0.2s ease;
+    }
+     .auth-btn:hover {
+        filter: brightness(1.2);
+        box-shadow: 0 0 15px rgba(215, 35, 35, 0.5);
     }
     .auth-toggle { color: var(--primary-yellow); cursor: pointer; margin-top: 20px; display: inline-block; font-weight: 500; }
     .auth-error { color: var(--primary-red); min-height: 20px; font-weight: 700; }
 
     /* --- App Header & Action Bar --- */
     .app-header {
-      background: var(--card-bg);
+      background: var(--dark-bg);
       padding: 15px;
       border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
     .header-content {
       display: flex;
@@ -92,8 +110,9 @@
       margin: auto;
     }
     .app-header .logo {
-        font-size: 2em;
+        font-size: 1.8em;
         margin: 0;
+        text-shadow: 0 0 5px var(--shadow-color);
     }
     .welcome-msg { font-size: 1.1em; font-weight: 500; }
     .welcome-msg .name { color: var(--primary-yellow); font-weight: 700; }
@@ -102,17 +121,21 @@
       position: relative; 
       padding: 10px 20px; 
       font-size: 1em; 
-      border: none;
+      border: 1px solid var(--border-color);
       background: var(--card-bg);
       color: var(--text-light);
-      border-radius: 25px; 
+      border-radius: 50px; 
       cursor: pointer; 
       font-family: var(--font-family); 
       font-weight: 700; 
       transition: all 0.2s ease; 
     }
-    .action-btn:hover { transform: translateY(-3px); }
-    .action-btn.cart { background: var(--primary-yellow); color: var(--text-dark); }
+    .action-btn:hover { 
+        transform: translateY(-3px); 
+        color: var(--primary-yellow);
+        border-color: var(--primary-yellow);
+    }
+    .action-btn.cart { background: var(--primary-yellow); color: var(--text-dark); border: none;}
     .action-count { position: absolute; top: -8px; right: -8px; background: var(--primary-red); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: 600; }
     
     /* --- Menu & Categories --- */
@@ -120,7 +143,7 @@
     #search-input { 
       width: 100%; 
       padding: 15px; 
-      border-radius: 10px; 
+      border-radius: 4px; 
       border: 1px solid var(--border-color); 
       background: var(--card-bg); 
       color: var(--text-light); 
@@ -132,30 +155,63 @@
     .category-card { 
       background-color: var(--card-bg); 
       aspect-ratio: 1 / 1;
-      border-radius: 10px; 
+      border-radius: 4px; 
       cursor: pointer; 
-      transition: transform 0.2s ease; 
+      transition: transform 0.2s ease, box-shadow 0.2s; 
       display: flex; 
       flex-direction: column; 
       align-items: center; 
       justify-content: center; 
       gap: 10px; 
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
     }
-    .category-card:hover { transform: scale(1.05); }
-    .category-card-icon { font-size: 3em; line-height: 1; }
-    .category-card-title { color: var(--text-light); font-size: 1.4em; font-weight: 700; text-align: center; }
+    .category-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 50% 0%, var(--primary-yellow), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        transform: scaleY(1.5);
+    }
+    .category-card:hover::before {
+        opacity: 0.1;
+    }
+    .category-card:hover { 
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    .category-card-icon { font-size: 3em; line-height: 1; z-index: 1; }
+    .category-card-title { color: var(--text-light); font-size: 1.4em; font-weight: 700; text-align: center; z-index: 1;}
     
-    .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-yellow); padding-bottom: 10px; margin: 30px 0 25px 0;}
-    .category-title { font-family: var(--header-font); font-weight: 700; font-size: 2em; color: var(--primary-yellow); }
-    .back-btn { background: var(--card-bg); color: var(--text-light); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; }
+    .menu-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin: 30px 0 25px 0; position: relative;}
+    .menu-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 100px;
+        height: 3px;
+        background: var(--primary-yellow);
+        box-shadow: 0 0 10px var(--primary-yellow);
+    }
+    .category-title { font-family: var(--header-font); font-weight: 700; font-size: 2.2em; color: var(--text-light); }
+    .back-btn { background: var(--card-bg); color: var(--text-light); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 50px; cursor: pointer; font-weight: 700; }
     
     .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
     .item-card { 
       background: var(--card-bg); 
-      border-radius: 10px; 
+      border-radius: 4px; 
       display: flex; 
       align-items: center; 
       padding: 15px;
+      border: 1px solid var(--border-color);
+      animation: fadeIn 0.5s ease forwards;
     }
     .item-details { flex-grow: 1; }
     .item-name { font-size: 1.2em; font-weight: 700; margin: 0; }
@@ -163,11 +219,15 @@
     .add-to-cart-btn { 
         background: var(--primary-red);
         color: white; 
-        border-radius: 8px; 
+        border-radius: 4px; 
         padding: 10px 20px; 
         font-weight: 700; 
         cursor: pointer;
         border: none;
+        transition: all 0.2s ease;
+    }
+    .add-to-cart-btn:hover {
+        filter: brightness(1.2);
     }
 
     /* --- Modals --- */
@@ -181,9 +241,10 @@
     }
     .modal-overlay.show { display: flex; opacity: 1; }
     .modal-content { 
-      background: var(--card-bg); 
+      background: var(--dark-bg); 
       width: 90%; max-width: 500px; 
-      border-radius: 10px; padding: 25px; 
+      border-radius: 4px; padding: 25px; 
+      border: 1px solid var(--border-color);
       max-height: 85vh; overflow-y: auto; 
     }
     .close-modal { float: left; cursor: pointer; font-size: 1.5em; color: #aaa; }
@@ -194,15 +255,13 @@
     .status-rejected { color: var(--primary-red); }
     .reorder-btn { background: none; border: 1px solid var(--primary-yellow); color: var(--primary-yellow); border-radius: 15px; padding: 5px 10px; font-size: 0.8em; cursor: pointer; margin-top: 5px; }
     #total-price { font-size: 1.5em; font-weight: bold; color: var(--primary-yellow); text-align: left; margin-top: 20px; }
-    .modal-input { width: calc(100% - 24px); padding: 12px; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--dark-bg); color: var(--text-light); font-family: var(--font-family); }
+    .modal-input { width: calc(100% - 24px); padding: 12px; margin-top: 15px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--dark-bg); color: var(--text-light); font-family: var(--font-family); }
     .modal-btn { 
       width: 100%; padding: 15px; 
       font-size: 1.2em; margin-top: 20px; 
       background: var(--primary-red);
-      color: white; border: none; border-radius: 8px; cursor: pointer; 
+      color: white; border: none; border-radius: 4px; cursor: pointer; 
     }
-    .modal-btn:disabled { background: #555; cursor: not-allowed; }
-    #tracking-result { margin-top: 15px; font-size: 1.2em; font-weight: 700; min-height: 20px; text-align: center; }
     
     .loader { text-align: center; padding: 50px; font-size: 1.5em; color: var(--primary-yellow); font-weight: 700; }
     #payment-confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 2000; display: none; justify-content: center; align-items: center; text-align: center; flex-direction: column; color: white; }
@@ -216,7 +275,7 @@
             border-top: 1px solid var(--border-color); 
             z-index: 1000; margin: 0; padding: 10px; 
             justify-content: space-around; 
-            border-radius: 15px 15px 0 0; 
+            border-radius: 0; 
         } 
         body { padding-bottom: 90px; } 
         #categories-container { grid-template-columns: 1fr 1fr; gap: 15px; } 
@@ -229,7 +288,7 @@
   <div id="payment-confirm-overlay"><div class="spinner"></div><h2>جاري تأكيد الدفع...</h2></div>
   <div id="auth-view">
     <div class="container">
-        <h1 class="logo">Bélla Vita</h1>
+        <h1 class="logo">BÉLLA VITA</h1>
         <div id="login-container" class="auth-container">
           <h2>تسجيل الدخول</h2><p id="login-error" class="auth-error"></p><input type="text" id="login-id" class="auth-input" placeholder="الرقم الجامعي"><input type="password" id="login-password" class="auth-input" placeholder="كلمة المرور"><button class="auth-btn" onclick="handleLogin()">دخول</button><p class="auth-toggle" onclick="toggleAuthView()">ليس لديك حساب؟ أنشئ واحدًا</p>
         </div>
@@ -242,7 +301,7 @@
   <div id="app-view" class="hidden">
     <header class="app-header">
         <div class="header-content">
-            <h1 class="logo">Bélla Vita</h1>
+            <h1 class="logo">BÉLLA VITA</h1>
             <h2 id="welcome-msg" class="welcome-msg"></h2>
         </div>
     </header>
