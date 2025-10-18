@@ -30,6 +30,7 @@
         }
         .container { max-width: 1400px; margin: auto; }
         h1, h2, h3 { font-family: var(--header-font); font-weight: 700; }
+        .hidden { display: none !important; }
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .header h1 { color: var(--primary-yellow); font-weight: 900; text-transform: uppercase; }
@@ -48,16 +49,13 @@
         .dashboard-section { background: var(--card-bg); border-radius: 4px; box-shadow: 0 5px 20px var(--shadow-color); padding: 25px; border: 1px solid var(--border-color); }
         .dashboard-section h2 { margin-top: 0; font-size: 1.5em; }
         
-        /* Wallet Section Styles */
         .form-group { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
         .form-group input { flex-grow: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; font-family: 'Tajawal'; background: var(--dark-bg); color: var(--text-light); }
         .form-group button { background: var(--blue); color: white; border: none; padding: 12px 22px; border-radius: 4px; cursor: pointer; font-weight: 700; }
         #wallet-result, #wallet-message { margin-top: 20px; padding: 15px; border-radius: 4px; }
-        #wallet-result.hidden { display: none; }
         #wallet-message.success { background: rgba(40, 167, 69, 0.2); color: var(--success); }
         #wallet-message.error { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
         
-        /* Orders Section Styles */
         #orders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
         .order-card { background: var(--card-bg); border-radius: 4px; box-shadow: 0 4px 12px var(--shadow-color); padding: 20px; border-top: 5px solid var(--primary-yellow); }
         .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
@@ -65,13 +63,14 @@
         .items-list { list-style: none; padding: 0; margin: 15px 0; }
         .items-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
         .item-quantity { font-weight: 700; background: var(--dark-bg); padding: 2px 8px; border-radius: 5px; }
+        .notes { background: #332E1A; color: #FDCB01; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 15px; }
         .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         .action-btn { padding: 12px; font-size: 1.1em; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; color: white; }
         .action-btn.ready { background: var(--success); }
         .action-btn.reject { background: var(--danger); }
         #no-orders-msg { text-align: center; font-size: 1.5em; color: #888; padding: 50px; grid-column: 1 / -1; }
 
-        /* Analytics Section Styles */
+        /* Analytics Section */
         .analytics-filters { display: flex; gap: 10px; margin-bottom: 20px; }
         .filter-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-light); padding: 8px 15px; border-radius: 50px; cursor: pointer; font-weight: 700; }
         .filter-btn.active { background: var(--primary-yellow); color: var(--text-dark); border-color: var(--primary-yellow); }
@@ -81,10 +80,16 @@
         .stat-card .value { font-size: 2.5em; font-weight: 800; }
         .stat-list { list-style-type: none; padding: 0; }
         .stat-list li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
-        .stat-list li:last-child { border-bottom: none; }
-        .stat-list .count { font-weight: 700; }
         #analytics-loader { text-align: center; padding: 40px; font-size: 1.2em; }
 
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1001; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 4px; width: 90%; max-width: 400px; border: 1px solid var(--border-color); }
+        .modal-content h3 { margin-top: 0; }
+        .modal-content input { width: 100%; box-sizing: border-box; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex-grow: 1; }
     </style>
 </head>
 <body>
@@ -102,7 +107,7 @@
 
         <main>
             <div id="wallet-section" class="tab-content dashboard-section">
-                <h2>شحن رصيد طالب</h2>
+                 <h2>شحن رصيد طالب</h2>
                 <div class="form-group">
                     <input type="text" id="student-id-search" placeholder="أدخل الرقم الجامعي للطالب...">
                     <button onclick="findStudent()">بحث</button>
@@ -128,40 +133,36 @@
             <div id="analytics-section" class="tab-content dashboard-section">
                 <h2>نظرة عامة على الأداء</h2>
                 <div class="analytics-filters">
-                    <button class="filter-btn active" data-period="day" onclick="loadAnalytics('day', this)">آخر 24 ساعة</button>
+                    <button class="filter-btn" data-period="day" onclick="loadAnalytics('day', this)">آخر 24 ساعة</button>
                     <button class="filter-btn" data-period="week" onclick="loadAnalytics('week', this)">آخر 7 أيام</button>
                     <button class="filter-btn" data-period="month" onclick="loadAnalytics('month', this)">آخر 30 يوم</button>
                 </div>
-
                 <div id="analytics-loader">جاري تحميل البيانات...</div>
-                
                 <div id="analytics-content" class="hidden">
                     <div class="analytics-grid">
-                        <div class="stat-card">
-                            <h3>إجمالي الإيرادات</h3>
-                            <p class="value"><span id="total-revenue">0</span> جنيه</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>إجمالي الطلبات</h3>
-                            <p class="value" id="total-orders">0</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>الأصناف الأكثر مبيعًا</h3>
-                            <ul id="top-items-list" class="stat-list"></ul>
-                        </div>
-                        <div class="stat-card">
-                            <h3>أفضل العملاء</h3>
-                            <ul id="top-customers-list" class="stat-list"></ul>
-                        </div>
-                         <div class="stat-card" style="grid-column: 1 / -1;">
-                            <h3>أوقات الذروة</h3>
-                            <ul id="peak-hours-list" class="stat-list"></ul>
-                        </div>
+                        <div class="stat-card"><h3>إجمالي الإيرادات</h3><p class="value"><span id="total-revenue">0</span> جنيه</p></div>
+                        <div class="stat-card"><h3>إجمالي الطلبات</h3><p class="value" id="total-orders">0</p></div>
+                        <div class="stat-card"><h3>الأصناف الأكثر مبيعًا</h3><ul id="top-items-list" class="stat-list"></ul></div>
+                        <div class="stat-card"><h3>أفضل العملاء</h3><ul id="top-customers-list" class="stat-list"></ul></div>
+                         <div class="stat-card" style="grid-column: 1 / -1;"><h3>أوقات الذروة</h3><ul id="peak-hours-list" class="stat-list"></ul></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- Reject Reason Modal -->
+    <div id="reject-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>سبب رفض الطلب</h3>
+            <input type="text" id="reject-reason-input" class="form-group input" placeholder="مثال: الصنف غير متوفر">
+            <div class="modal-actions">
+                <button class="action-btn" style="background: #888;" onclick="closeRejectModal()">إلغاء</button>
+                <button class="action-btn reject" id="confirm-reject-btn">تأكيد الرفض</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         let password;
@@ -171,19 +172,15 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             password = localStorage.getItem('dashboardPassword');
-            if (!password) {
-                window.location.href = 'dashboard-login.html';
-                return;
-            }
+            if (!password) { window.location.href = 'dashboard-login.html'; return; }
+            
             fetchOrders();
             setInterval(fetchOrders, 15000);
             loadAnalytics('day', document.querySelector('.filter-btn[data-period="day"]'));
         });
         
         function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
+            document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(`${tabName}-section`).classList.add('active');
             event.currentTarget.classList.add('active');
         }
@@ -198,8 +195,10 @@
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             btnElement.classList.add('active');
 
-            document.getElementById('analytics-loader').classList.remove('hidden');
-            document.getElementById('analytics-content').classList.add('hidden');
+            const loader = document.getElementById('analytics-loader');
+            const content = document.getElementById('analytics-content');
+            loader.classList.remove('hidden');
+            content.classList.add('hidden');
 
             try {
                 const response = await fetch(`/api/analytics?period=${period}`, { headers: { 'Authorization': `Bearer ${password}` } });
@@ -207,7 +206,7 @@
                 const data = await response.json();
                 renderAnalytics(data);
             } catch (error) {
-                document.getElementById('analytics-loader').textContent = 'فشل تحميل البيانات.';
+                loader.textContent = 'فشل تحميل البيانات.';
                 console.error(error);
             }
         }
@@ -215,36 +214,56 @@
         function renderAnalytics(data) {
             document.getElementById('total-revenue').textContent = data.totalRevenue;
             document.getElementById('total-orders').textContent = data.totalOrders;
-
-            const topItemsList = document.getElementById('top-items-list');
-            topItemsList.innerHTML = data.topItems.map(item => `<li><span>${item.name}</span><span class="count">${item.count} مرة</span></li>`).join('');
-
-            const topCustomersList = document.getElementById('top-customers-list');
-            topCustomersList.innerHTML = data.topCustomers.map(customer => `<li><span>${customer.name}</span><span class="count">${customer.total} جنيه</span></li>`).join('');
-
-            const peakHoursList = document.getElementById('peak-hours-list');
-            peakHoursList.innerHTML = data.peakHours.slice(0, 3).map(hourData => {
-                 const hour = hourData.hour % 12 || 12;
-                 const ampm = hourData.hour >= 12 ? 'م' : 'ص';
-                 return `<li><span>الساعة ${hour} ${ampm}</span><span class="count">${hourData.count} طلب</span></li>`;
-            }).join('');
+            document.getElementById('top-items-list').innerHTML = data.topItems.map(item => `<li><span>${item.name}</span><span class="count">${item.count} مرة</span></li>`).join('');
+            document.getElementById('top-customers-list').innerHTML = data.topCustomers.map(c => `<li><span>${c.name}</span><span class="count">${c.total} جنيه</span></li>`).join('');
+            document.getElementById('peak-hours-list').innerHTML = data.peakHours.slice(0, 3).map(h => `<li><span>الساعة ${h.hour % 12 || 12} ${h.hour >= 12 ? 'م' : 'ص'}</span><span class="count">${h.count} طلب</span></li>`).join('');
             
             document.getElementById('analytics-loader').classList.add('hidden');
             document.getElementById('analytics-content').classList.remove('hidden');
         }
 
         // --- Wallet Logic ---
+        async function findStudent() { /* ... function code ... */ }
+        async function chargeWallet() { /* ... function code ... */ }
+        
+        // --- Orders Logic ---
+        async function fetchOrders() { /* ... function code ... */ }
+        function renderOrders(orders) { /* ... function code ... */ }
+        
+        // --- Reject Modal Logic ---
+        function openRejectModal(orderId) {
+            const modal = document.getElementById('reject-modal');
+            modal.classList.add('show');
+            document.getElementById('confirm-reject-btn').onclick = () => confirmReject(orderId);
+        }
+        function closeRejectModal() {
+            document.getElementById('reject-modal').classList.remove('show');
+            document.getElementById('reject-reason-input').value = '';
+        }
+        function confirmReject(orderId) {
+            const reason = document.getElementById('reject-reason-input').value.trim();
+            if (!reason) {
+                alert("الرجاء إدخال سبب الرفض.");
+                return;
+            }
+            handleOrderAction('/api/reject-order', { orderId, reason }, 'فشل رفض الطلب.');
+            closeRejectModal();
+        }
+
+        async function handleOrderAction(endpoint, body, errorMessage) { /* ... function code ... */ }
+        function removeCardFromUI(orderId) { /* ... function code ... */ }
+        function playNotificationSound() { /* ... function code ... */ }
+
+        // --- Paste full function implementations here ---
         async function findStudent() {
             const studentId = document.getElementById('student-id-search').value.trim();
             const resultDiv = document.getElementById('wallet-result');
             const messageDiv = document.getElementById('wallet-message');
             if (!studentId) return;
-
             messageDiv.textContent = 'جاري البحث...';
             messageDiv.className = '';
             resultDiv.classList.add('hidden');
             foundUser = null;
-
             try {
                 const response = await fetch('/api/find-user', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` }, body: JSON.stringify({ studentId }) });
                 const data = await response.json();
@@ -259,7 +278,6 @@
                 messageDiv.className = 'error';
             }
         }
-
         async function chargeWallet() {
             const amount = document.getElementById('charge-amount').value;
             const messageDiv = document.getElementById('wallet-message');
@@ -282,40 +300,32 @@
                 messageDiv.className = 'error';
             }
         }
-
-        // --- Orders Logic ---
         async function fetchOrders() {
             try {
                 const response = await fetch('/api/all-orders', { headers: { 'Authorization': `Bearer ${password}` } });
-                if (!response.ok) {
-                    if (response.status === 401) handleLogout();
-                    throw new Error('Failed to fetch orders.');
-                }
+                if (!response.ok) { if (response.status === 401) handleLogout(); throw new Error('Failed to fetch orders.'); }
                 const orders = await response.json();
                 renderOrders(orders);
-            } catch (error) {
-                console.error(error);
-            }
+            } catch (error) { console.error(error); }
         }
-
         function renderOrders(orders) {
             const ordersContainer = document.getElementById('orders-container');
             const noOrdersMsg = document.getElementById('no-orders-msg');
             noOrdersMsg.style.display = orders.length === 0 ? 'block' : 'none';
+            if (orders.length > 0) noOrdersMsg.style.display = 'none'; else noOrdersMsg.style.display = 'block';
 
             const newOrderIds = new Set(orders.map(o => o.display_id));
-            if (newOrderIds.size > currentOrderIds.size && document.hidden === false) {
-                playNotificationSound();
-            }
+            if (newOrderIds.size > currentOrderIds.size && document.hidden === false) playNotificationSound();
+            
+            ordersContainer.innerHTML = ''; // Clear and re-render
+            if (orders.length === 0) ordersContainer.appendChild(noOrdersMsg);
 
-            ordersContainer.innerHTML = orders.length === 0 ? '<p id="no-orders-msg">لا توجد طلبات قيد التحضير حاليًا...</p>' : '';
 
             orders.forEach(order => {
                 const card = document.createElement('div');
                 card.className = 'order-card';
                 card.dataset.orderId = order.display_id;
                 const itemsHtml = order.items.map(item => `<li><span>${item.name}</span><span class="item-quantity">x${item.quantity}</span></li>`).join('');
-                
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="order-id">${order.display_id}</span>
@@ -325,25 +335,13 @@
                     <ul class="items-list">${itemsHtml}</ul>
                     ${order.notes ? `<div class="notes"><strong>ملاحظات:</strong> ${order.notes}</div>` : ''}
                     <div class="action-buttons">
-                        <button class="action-btn reject" onclick="rejectOrder('${order.display_id}')">رفض</button>
-                        <button class="action-btn ready" onclick="updateOrderStatus('${order.display_id}')">جاهز للاستلام</button>
+                        <button class="action-btn reject" onclick="openRejectModal('${order.display_id}')">رفض</button>
+                        <button class="action-btn ready" onclick="handleOrderAction('/api/update-order-status', { orderId: '${order.display_id}', status: 'جاهز للاستلام' }, 'فشل تحديث حالة الطلب.')">جاهز للاستلام</button>
                     </div>`;
                 ordersContainer.prepend(card);
             });
             currentOrderIds = newOrderIds;
         }
-
-        async function updateOrderStatus(orderId) {
-            await handleOrderAction('/api/update-order-status', { orderId, status: 'جاهز للاستلام' }, 'فشل تحديث حالة الطلب.');
-        }
-
-        async function rejectOrder(orderId) {
-            const reason = prompt("ما هو سبب رفض الطلب؟ (مثال: الصنف غير متوفر)");
-            if (reason) {
-                await handleOrderAction('/api/reject-order', { orderId, reason }, 'فشل رفض الطلب.');
-            }
-        }
-
         async function handleOrderAction(endpoint, body, errorMessage) {
             try {
                 const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` }, body: JSON.stringify(body) });
@@ -354,7 +352,6 @@
                 alert(error.message);
             }
         }
-
         function removeCardFromUI(orderId) {
             const card = document.querySelector(`.order-card[data-order-id='${orderId}']`);
             if (card) card.remove();
@@ -362,7 +359,6 @@
                  document.getElementById('no-orders-msg').style.display = 'block';
             }
         }
-
         function playNotificationSound() {
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
