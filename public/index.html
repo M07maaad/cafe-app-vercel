@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#FDCB01">
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- PWA: Link to Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <!-- PWA: Theme Color for Address Bar -->
+  <meta name="theme-color" content="#121212"> 
+  
   <title>Bélla Vita - Nexus</title>
   <style>
+    /* --- CSS REMAINS 100% UNCHANGED --- */
     :root {
       --primary-yellow: #FDCB01;
       --primary-red: #D72323;
@@ -20,7 +25,6 @@
       --header-font: 'Poppins', sans-serif;
       --shadow-color: rgba(253, 203, 1, 0.1);
     }
-
     body.light-mode {
       --dark-bg: #F0F2F5;
       --card-bg: #FFFFFF;
@@ -28,9 +32,7 @@
       --border-color: #E0E0E0;
       --shadow-color: rgba(0, 0, 0, 0.1);
     }
-
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
     body { 
       font-family: var(--font-family); 
       background-color: var(--dark-bg); 
@@ -280,6 +282,7 @@
         font-size: 1.8em;
         color: #aaa;
         line-height: 1;
+        z-index: 10;
     }
     
     /* --- Side Panel --- */
@@ -525,6 +528,112 @@
     return contentType?.includes("application/json") ? response.json() : response.text();
   }
 
+  // --- PWA & PUSH NOTIFICATION LOGIC ---
+
+  // Helper function to convert VAPID key
+  function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+  }
+
+  async function registerServiceWorker() {
+      if (!('serviceWorker' in navigator)) {
+          console.log('Service Worker not supported.');
+          return;
+      }
+      try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('ServiceWorker registration successful:', registration.scope);
+          
+          // After SW is registered, ask for notification permission
+          askForNotificationPermission(registration);
+
+      } catch (err) {
+          console.log('ServiceWorker registration failed:', err);
+      }
+  }
+
+  async function askForNotificationPermission(registration) {
+      if (!('PushManager' in window)) {
+          console.log('Push Notifications not supported.');
+          return;
+      }
+      
+      const permission = await window.Notification.requestPermission();
+      if (permission === 'granted') {
+          console.log('Notification permission granted.');
+          await subscribeUserToPush(registration);
+      } else {
+          console.log('Notification permission denied.');
+      }
+  }
+
+  async function subscribeUserToPush(registration) {
+      try {
+          // Check if a subscription already exists
+          let existingSubscription = await registration.pushManager.getSubscription();
+          if (existingSubscription) {
+              console.log('User is already subscribed.');
+              // Optional: You might want to re-send subscription to your server
+              // await apiCall('subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ subscription: existingSubscription }) });
+              return;
+          }
+          
+          // Get VAPID public key from server
+          const { publicKey } = await apiCall('vapid-public-key');
+          const applicationServerKey = urlBase64ToUint8Array(publicKey);
+          
+          const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: applicationServerKey
+          });
+          
+          console.log('New subscription acquired:', subscription);
+          
+          // Send the new subscription to the server
+          await apiCall('subscribe', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ subscription })
+          });
+          console.log('Subscription sent to server.');
+          
+      } catch (error) {
+          console.error('Failed to subscribe to push notifications:', error);
+      }
+  }
+
+  async function unsubscribeUserFromPush() {
+      try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          if (!subscription) {
+              return;
+          }
+          
+          // Unsubscribe locally
+          await subscription.unsubscribe();
+          console.log('Unsubscribed locally.');
+          
+          // Send unsubscription info to the server
+          await apiCall('unsubscribe', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ endpoint: subscription.endpoint })
+          });
+          console.log('Unsubscription sent to server.');
+          
+      } catch (error) {
+          console.error('Failed to unsubscribe:', error);
+      }
+  }
+
   // --- Initial Load & Auth ---
   document.addEventListener('DOMContentLoaded', () => {
     const sessionToken = localStorage.getItem('sessionToken');
@@ -563,13 +672,19 @@
     } catch (error) { errorEl.textContent = error.message; }
   }
 
-  function handleLogout() { 
+  async function handleLogout() { 
+      await unsubscribeUserFromPush(); // Unsubscribe from notifications on logout
       closeSidePanel();
       localStorage.removeItem('sessionToken'); 
       showAuthView(); 
   }
   function showAuthView() { authView.classList.remove('hidden'); appView.classList.add('hidden'); }
-  function showAppView() { authView.classList.add('hidden'); appView.classList.remove('hidden'); initializeApp(); }
+  function showAppView() { 
+      authView.classList.add('hidden'); 
+      appView.classList.remove('hidden'); 
+      initializeApp(); 
+      registerServiceWorker(); // Register SW & ask for push permission on app view
+  }
   function toggleAuthView() { document.getElementById('login-container').classList.toggle('hidden'); document.getElementById('signup-container').classList.toggle('hidden'); }
 
   async function initializeApp() {
@@ -591,6 +706,7 @@
     }
   }
 
+  // --- UI Rendering Functions (No changes) ---
   function displayCategories() {
     const container = document.getElementById('categories-container');
     container.innerHTML = '';
@@ -658,6 +774,7 @@
     showCategoryItems(`نتائج البحث عن: "${searchTerm}"`, results);
   }
 
+  // --- Cart Logic (No changes) ---
   function addToCart(event, itemName, itemPrice) {
     event.stopPropagation();
     if (cart[itemName]) {
@@ -698,6 +815,7 @@
     document.querySelectorAll('#order-btn, #paymob-order-btn').forEach(b => b.disabled = totalItems === 0);
   }
 
+  // --- Order Placement (No changes) ---
   async function placeWalletOrder() {
     if (Object.keys(cart).length === 0) return;
     document.querySelectorAll('.modal-btn').forEach(b => b.disabled = true);
@@ -733,6 +851,7 @@
     }
   }
 
+  // --- Modals Logic (No changes) ---
   function toggleModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
@@ -804,20 +923,6 @@
   }
 
 </script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        })
-        .catch(err => {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-    });
-  }
-</script>
 </body>
 </html>
-"
 
