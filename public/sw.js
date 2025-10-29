@@ -1,14 +1,13 @@
-const CACHE_NAME = 'bella-vita-cache-v1';
+const CACHE_NAME = 'bella-vita-cache-v2'; // غيّرنا الإصدار لإجبار التحديث
 const urlsToCache = [
   '/',
-  '/index.html', // Add other static files if needed (CSS, JS specific files)
-  // Add paths to your actual icons here
-  'https://placehold.co/192x192/FDCB01/121212?text=BV',
-  'https://placehold.co/512x512/FDCB01/121212?text=BV',
+  '/index.html',
+  '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&family=Tajawal:wght@400;500;700;800&display=swap'
+  // سنضيف الأيقونات الحقيقية هنا لاحقًا
 ];
 
-// Install event: Cache core assets
+// 1. Install event: Cache core assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -23,7 +22,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate event: Clean up old caches
+// 2. Activate event: Clean up old caches
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -31,7 +30,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
+            return caches.delete(cacheName); // حذف أي كاش قديم
           }
         })
       );
@@ -40,7 +39,7 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch event: Serve cached assets or fetch from network
+// 3. Fetch event: Serve cached assets or fetch from network
 self.addEventListener('fetch', event => {
   // Always try network first for API calls or non-GET requests
   if (event.request.url.includes('/api/') || event.request.method !== 'GET') {
@@ -52,21 +51,15 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
-          return response;
+          return response; // Return from cache
         }
-        // Not in cache - fetch from network, cache it, then return
+        // Not in cache - fetch, cache, and return
         return fetch(event.request).then(
           networkResponse => {
-            // Check if we received a valid response
             if(!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
               return networkResponse;
             }
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
               .then(cache => {
@@ -74,10 +67,44 @@ self.addEventListener('fetch', event => {
               });
             return networkResponse;
           }
-        ).catch(error => {
-            console.error('Fetching failed:', error);
-            // Optional: Return a fallback offline page if fetch fails
-        });
+        );
       })
     );
 });
+
+// --- PUSH NOTIFICATION LOGIC ---
+
+// 4. Listen for push notifications
+self.addEventListener('push', event => {
+  console.log('[Service Worker] Push Received.');
+  let data;
+  try {
+    data = event.data.json();
+  } catch (e) {
+    data = { title: 'Bélla Vita', body: 'لديك تحديث جديد!' };
+  }
+
+  const title = data.title || 'Bélla Vita';
+  const options = {
+    body: data.body || 'لديك رسالة جديدة.',
+    icon: data.icon || '/icon-192.png', // تأكد من وجود أيقونة بهذا الاسم
+    badge: '/badge-72.png', // أيقونة صغيرة لشريط الإشعارات
+    vibrate: [200, 100, 200]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// 5. Handle notification click
+self.addEventListener('notificationclick', event => {
+  console.log('[Service Worker] Notification click Received.');
+  event.notification.close();
+  
+  // يفتح التطبيق عند الضغط على الإشعار
+  event.waitUntil(
+    clients.openWindow('/')
+  );
+});
+
