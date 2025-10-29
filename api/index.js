@@ -9,19 +9,21 @@ router.use(express.json());
 // Initialize Supabase client
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Configure Web Push
+// --- Configure Web Push Safely ---
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(
-    'mailto:your-email@example.com', // استبدل هذا بإيميلك
+    'mailto:your-email@example.com', // **هام: استبدل هذا بإيميلك**
     vapidPublicKey,
     vapidPrivateKey
   );
+  console.log('VAPID keys loaded. Push notifications enabled.');
 } else {
-  console.warn('VAPID keys are not set. Push notifications will be disabled.');
+  console.warn('VAPID keys are NOT set. Push notifications will be disabled.');
 }
+// --- End of Web Push Config ---
 
 // --- AUTH MIDDLEWARE ---
 const userAuthCheck = async (req, res, next) => {
@@ -44,8 +46,6 @@ const dashboardAuthCheck = (req, res, next) => {
 };
 
 // --- USER-FACING ROUTES ---
-
-// ... (Signup, Login, Menu, User-Details, Orders, Order-Status routes remain the same) ...
 router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
@@ -119,7 +119,6 @@ router.get('/order-status/:id', userAuthCheck, async (req, res) => {
     }
 });
 
-// ... (process-wallet-order and start-paymob-payment routes remain the same) ...
 router.post('/process-wallet-order', userAuthCheck, async (req, res) => {
     const { items, notes } = req.body;
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -212,7 +211,6 @@ router.post('/confirm-paymob-callback', async (req, res) => {
 
 // --- PUSH NOTIFICATION ROUTES ---
 
-// 1. Get VAPID Public Key
 router.get('/vapid-public-key', (req, res) => {
   if (!vapidPublicKey) {
     return res.status(500).json({ error: 'VAPID public key not configured.' });
@@ -220,7 +218,6 @@ router.get('/vapid-public-key', (req, res) => {
   res.status(200).json({ publicKey: vapidPublicKey });
 });
 
-// 2. Subscribe user to push notifications
 router.post('/subscribe', userAuthCheck, async (req, res) => {
   const subscription = req.body.subscription;
   const userId = req.user.id;
@@ -228,7 +225,6 @@ router.post('/subscribe', userAuthCheck, async (req, res) => {
     return res.status(400).json({ error: 'No subscription object provided.' });
   }
   try {
-    // Save the new subscription
     const { error } = await supabase
       .from('push_subscriptions')
       .insert({ user_id: userId, subscription: subscription });
@@ -240,18 +236,16 @@ router.post('/subscribe', userAuthCheck, async (req, res) => {
   }
 });
 
-// 3. Unsubscribe user
 router.post('/unsubscribe', userAuthCheck, async (req, res) => {
     const endpoint = req.body.endpoint;
     if (!endpoint) {
         return res.status(400).json({ error: 'No endpoint provided.' });
     }
     try {
-        // Delete the subscription based on its endpoint
         const { error } = await supabase
             .from('push_subscriptions')
             .delete()
-            .eq('subscription->>endpoint', endpoint); // Efficiently targets the JSONB endpoint
+            .eq('subscription->>endpoint', endpoint);
             
         if (error) throw error;
         res.status(200).json({ success: true, message: 'Unsubscribed successfully.' });
@@ -278,13 +272,11 @@ router.get('/all-orders', dashboardAuthCheck, async (req, res) => {
     }
 });
 
-// --- MODIFIED /update-order-status ---
 router.post('/update-order-status', dashboardAuthCheck, async (req, res) => {
     try {
         const { orderId, status } = req.body;
         if (!orderId || !status) return res.status(400).json({ error: 'Missing orderId or status.' });
         
-        // Find the user ID for the order
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .select('user_id')
@@ -293,19 +285,16 @@ router.post('/update-order-status', dashboardAuthCheck, async (req, res) => {
 
         if (orderError || !orderData) throw new Error('Order not found.');
         
-        // Update the order status
         const { error } = await supabase.from('orders').update({ status }).eq('display_id', orderId);
         if (error) throw error;
 
-        // --- Send Push Notification if status is "Ready" ---
         if (status === 'جاهز للاستلام' && vapidPublicKey) {
             sendNotification(orderData.user_id, {
                 title: 'طلبك جاهز! 🎉',
-                body: `طلبك رقم ${orderId} جاهز للاستلام من Bélla Vita.`,
-                icon: 'https://placehold.co/192x192/FDCB01/121212?text=BV' // استبدل بالأيقونة الحقيقية
+                body: `طلبك رقم ${orderId} جاهز للاستلام.`,
+                icon: 'https://placehold.co/192x192/FDCB01/121212?text=BV'
             });
         }
-        // --- End of Push Notification logic ---
         
         res.status(200).json({ success: true });
     } catch (error) {
@@ -314,7 +303,6 @@ router.post('/update-order-status', dashboardAuthCheck, async (req, res) => {
     }
 });
 
-// ... (Other dashboard routes: /reject-order, /find-user, /charge-wallet, /analytics remain the same) ...
 router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
     const { orderId, reason } = req.body;
     if (!orderId || !reason) return res.status(400).json({ error: 'Missing orderId or reason.' });
@@ -330,7 +318,6 @@ router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
         }
         await supabase.from('orders').update({ status: 'مرفوض', notes: `سبب الرفض: ${reason}` }).eq('display_id', orderId);
         
-        // --- Send Push Notification for Rejection ---
         if (vapidPublicKey) {
              sendNotification(order.user_id, {
                 title: 'تم رفض طلبك 😕',
@@ -338,7 +325,6 @@ router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
                 icon: 'https://placehold.co/192x192/FDCB01/121212?text=BV'
             });
         }
-        // --- End of Push Notification logic ---
 
         res.status(200).json({ success: true });
     } catch (error) {
@@ -433,25 +419,29 @@ router.get('/analytics', dashboardAuthCheck, async (req, res) => {
 
 // --- Helper Function to Send Notification ---
 async function sendNotification(userId, payload) {
-    if (!vapidPublicKey) return; // Don't try if keys aren't set
+    if (!vapidPublicKey) {
+        console.log('Skipping push notification, VAPID keys not set.');
+        return; // Don't try if keys aren't set
+    }
 
     try {
-        // Find all subscriptions for the given user
         const { data: subscriptions, error } = await supabase
             .from('push_subscriptions')
             .select('subscription')
             .eq('user_id', userId);
 
-        if (error || !subscriptions) throw new Error('No subscriptions found.');
+        if (error) throw new Error(`Error fetching subscriptions: ${error.message}`);
+        if (!subscriptions || subscriptions.length === 0) {
+            console.log(`No push subscriptions found for user ${userId}.`);
+            return;
+        }
 
         const notificationPayload = JSON.stringify(payload);
-
-        // Send a notification to each subscription
         const promises = subscriptions.map(sub => 
             webpush.sendNotification(sub.subscription, notificationPayload)
                 .catch(err => {
                     if (err.statusCode === 410) {
-                        // 410 Gone: Subscription is no longer valid. Remove it.
+                        console.log('Subscription has expired or is no longer valid. Deleting.');
                         return supabase
                             .from('push_subscriptions')
                             .delete()
