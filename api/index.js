@@ -12,16 +12,23 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 // --- Configure Web Push Safely ---
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const contactEmail = process.env.CONTACT_EMAIL;
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    'mailto:your-email@example.com', // **هام: استبدل هذا بإيميلك**
-    vapidPublicKey,
-    vapidPrivateKey
-  );
-  console.log('VAPID keys loaded. Push notifications enabled.');
+let pushNotificationsEnabled = false;
+if (vapidPublicKey && vapidPrivateKey && contactEmail) {
+  try {
+    webpush.setVapidDetails(
+      `mailto:${contactEmail}`,
+      vapidPublicKey,
+      vapidPrivateKey
+    );
+    console.log('VAPID keys and contact email loaded. Push notifications enabled.');
+    pushNotificationsEnabled = true;
+  } catch (error) {
+    console.error('Failed to set VAPID details, push notifications disabled.', error);
+  }
 } else {
-  console.warn('VAPID keys are NOT set. Push notifications will be disabled.');
+  console.warn('VAPID keys or contact email are NOT set. Push notifications will be disabled.');
 }
 // --- End of Web Push Config ---
 
@@ -212,13 +219,16 @@ router.post('/confirm-paymob-callback', async (req, res) => {
 // --- PUSH NOTIFICATION ROUTES ---
 
 router.get('/vapid-public-key', (req, res) => {
-  if (!vapidPublicKey) {
-    return res.status(500).json({ error: 'VAPID public key not configured.' });
+  if (!pushNotificationsEnabled) {
+    return res.status(503).json({ error: 'Push notifications are not configured on the server.' });
   }
   res.status(200).json({ publicKey: vapidPublicKey });
 });
 
 router.post('/subscribe', userAuthCheck, async (req, res) => {
+  if (!pushNotificationsEnabled) {
+    return res.status(503).json({ error: 'Push notifications are not configured.' });
+  }
   const subscription = req.body.subscription;
   const userId = req.user.id;
   if (!subscription) {
@@ -237,6 +247,9 @@ router.post('/subscribe', userAuthCheck, async (req, res) => {
 });
 
 router.post('/unsubscribe', userAuthCheck, async (req, res) => {
+    if (!pushNotificationsEnabled) {
+      return res.status(200).json({ success: true, message: 'Push notifications not configured.' });
+    }
     const endpoint = req.body.endpoint;
     if (!endpoint) {
         return res.status(400).json({ error: 'No endpoint provided.' });
@@ -288,7 +301,7 @@ router.post('/update-order-status', dashboardAuthCheck, async (req, res) => {
         const { error } = await supabase.from('orders').update({ status }).eq('display_id', orderId);
         if (error) throw error;
 
-        if (status === 'جاهز للاستلام' && vapidPublicKey) {
+        if (status === 'جاهز للاستلام' && pushNotificationsEnabled) {
             sendNotification(orderData.user_id, {
                 title: 'طلبك جاهز! 🎉',
                 body: `طلبك رقم ${orderId} جاهز للاستلام.`,
@@ -318,7 +331,7 @@ router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
         }
         await supabase.from('orders').update({ status: 'مرفوض', notes: `سبب الرفض: ${reason}` }).eq('display_id', orderId);
         
-        if (vapidPublicKey) {
+        if (pushNotificationsEnabled) {
              sendNotification(order.user_id, {
                 title: 'تم رفض طلبك 😕',
                 body: `تم رفض طلبك رقم ${orderId}. السبب: ${reason}`,
@@ -419,9 +432,9 @@ router.get('/analytics', dashboardAuthCheck, async (req, res) => {
 
 // --- Helper Function to Send Notification ---
 async function sendNotification(userId, payload) {
-    if (!vapidPublicKey) {
-        console.log('Skipping push notification, VAPID keys not set.');
-        return; // Don't try if keys aren't set
+    if (!pushNotificationsEnabled) {
+        console.log('Skipping push notification, push is disabled.');
+        return;
     }
 
     try {
