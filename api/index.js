@@ -1,12 +1,27 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
+const webpush = require('web-push');
 
 const router = express.Router();
 router.use(express.json());
 
 // Initialize Supabase client
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+// Configure Web Push
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    'mailto:your-email@example.com', // استبدل هذا بإيميلك
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+} else {
+  console.warn('VAPID keys are not set. Push notifications will be disabled.');
+}
 
 // --- AUTH MIDDLEWARE ---
 const userAuthCheck = async (req, res, next) => {
@@ -28,7 +43,9 @@ const dashboardAuthCheck = (req, res, next) => {
     next();
 };
 
-// ... (Existing /signup, /login, /menu routes remain the same) ...
+// --- USER-FACING ROUTES ---
+
+// ... (Signup, Login, Menu, User-Details, Orders, Order-Status routes remain the same) ...
 router.post('/signup', async (req, res) => {
     try {
         const { name, studentId, password } = req.body;
@@ -70,8 +87,6 @@ router.get('/menu', async (req, res) => {
     }
 });
 
-
-// ... (Existing user-facing routes remain the same) ...
 router.get('/user-details', userAuthCheck, async (req, res) => {
     try {
         const { data: u, error: uErr } = await supabase.from('users').select('name, studentId').eq('id', req.user.id).single();
@@ -104,6 +119,7 @@ router.get('/order-status/:id', userAuthCheck, async (req, res) => {
     }
 });
 
+// ... (process-wallet-order and start-paymob-payment routes remain the same) ...
 router.post('/process-wallet-order', userAuthCheck, async (req, res) => {
     const { items, notes } = req.body;
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -194,15 +210,65 @@ router.post('/confirm-paymob-callback', async (req, res) => {
     res.status(200).send();
 });
 
+// --- PUSH NOTIFICATION ROUTES ---
+
+// 1. Get VAPID Public Key
+router.get('/vapid-public-key', (req, res) => {
+  if (!vapidPublicKey) {
+    return res.status(500).json({ error: 'VAPID public key not configured.' });
+  }
+  res.status(200).json({ publicKey: vapidPublicKey });
+});
+
+// 2. Subscribe user to push notifications
+router.post('/subscribe', userAuthCheck, async (req, res) => {
+  const subscription = req.body.subscription;
+  const userId = req.user.id;
+  if (!subscription) {
+    return res.status(400).json({ error: 'No subscription object provided.' });
+  }
+  try {
+    // Save the new subscription
+    const { error } = await supabase
+      .from('push_subscriptions')
+      .insert({ user_id: userId, subscription: subscription });
+    if (error) throw error;
+    res.status(201).json({ success: true, message: 'Subscribed successfully.' });
+  } catch (error) {
+    console.error('Subscription error:', error.message);
+    res.status(500).json({ error: 'Failed to save subscription.' });
+  }
+});
+
+// 3. Unsubscribe user
+router.post('/unsubscribe', userAuthCheck, async (req, res) => {
+    const endpoint = req.body.endpoint;
+    if (!endpoint) {
+        return res.status(400).json({ error: 'No endpoint provided.' });
+    }
+    try {
+        // Delete the subscription based on its endpoint
+        const { error } = await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('subscription->>endpoint', endpoint); // Efficiently targets the JSONB endpoint
+            
+        if (error) throw error;
+        res.status(200).json({ success: true, message: 'Unsubscribed successfully.' });
+    } catch (error) {
+        console.error('Unsubscription error:', error.message);
+        res.status(500).json({ error: 'Failed to remove subscription.' });
+    }
+});
+
 
 // --- DASHBOARD-ONLY ROUTES ---
 
-// ... (Existing dashboard routes: /all-orders, /update-order-status, etc. remain the same)
 router.get('/all-orders', dashboardAuthCheck, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('orders')
-            .select(`id, display_id, created_at, items, totalPrice, paymentMethod, notes, status, users ( name, studentId )`)
+            .select(`id, display_id, created_at, items, totalPrice, paymentMethod, notes, status, user_id, users ( name, studentId )`)
             .eq('status', 'قيد التحضير')
             .order('created_at', { ascending: true });
         if (error) throw error;
@@ -212,18 +278,43 @@ router.get('/all-orders', dashboardAuthCheck, async (req, res) => {
     }
 });
 
+// --- MODIFIED /update-order-status ---
 router.post('/update-order-status', dashboardAuthCheck, async (req, res) => {
     try {
         const { orderId, status } = req.body;
         if (!orderId || !status) return res.status(400).json({ error: 'Missing orderId or status.' });
+        
+        // Find the user ID for the order
+        const { data: orderData, error: orderError } = await supabase
+            .from('orders')
+            .select('user_id')
+            .eq('display_id', orderId)
+            .single();
+
+        if (orderError || !orderData) throw new Error('Order not found.');
+        
+        // Update the order status
         const { error } = await supabase.from('orders').update({ status }).eq('display_id', orderId);
         if (error) throw error;
+
+        // --- Send Push Notification if status is "Ready" ---
+        if (status === 'جاهز للاستلام' && vapidPublicKey) {
+            sendNotification(orderData.user_id, {
+                title: 'طلبك جاهز! 🎉',
+                body: `طلبك رقم ${orderId} جاهز للاستلام من Bélla Vita.`,
+                icon: 'https://placehold.co/192x192/FDCB01/121212?text=BV' // استبدل بالأيقونة الحقيقية
+            });
+        }
+        // --- End of Push Notification logic ---
+        
         res.status(200).json({ success: true });
     } catch (error) {
+        console.error('Update Status Error:', error.message);
         res.status(500).json({ error: 'Failed to update order status.' });
     }
 });
 
+// ... (Other dashboard routes: /reject-order, /find-user, /charge-wallet, /analytics remain the same) ...
 router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
     const { orderId, reason } = req.body;
     if (!orderId || !reason) return res.status(400).json({ error: 'Missing orderId or reason.' });
@@ -238,6 +329,17 @@ router.post('/reject-order', dashboardAuthCheck, async (req, res) => {
             if (updateWalletError) throw new Error('Failed to refund to wallet.');
         }
         await supabase.from('orders').update({ status: 'مرفوض', notes: `سبب الرفض: ${reason}` }).eq('display_id', orderId);
+        
+        // --- Send Push Notification for Rejection ---
+        if (vapidPublicKey) {
+             sendNotification(order.user_id, {
+                title: 'تم رفض طلبك 😕',
+                body: `تم رفض طلبك رقم ${orderId}. السبب: ${reason}`,
+                icon: 'https://placehold.co/192x192/FDCB01/121212?text=BV'
+            });
+        }
+        // --- End of Push Notification logic ---
+
         res.status(200).json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -280,62 +382,39 @@ router.post('/charge-wallet', dashboardAuthCheck, async (req, res) => {
     }
 });
 
-// --- NEW ANALYTICS ENDPOINT ---
 router.get('/analytics', dashboardAuthCheck, async (req, res) => {
-    const { period = 'day' } = req.query; // 'day', 'week', 'month'
-    
+    const { period = 'day' } = req.query;
     try {
         let startDate = new Date();
-        if (period === 'day') {
-            startDate.setHours(0, 0, 0, 0);
-        } else if (period === 'week') {
-            startDate.setDate(startDate.getDate() - 7);
-            startDate.setHours(0, 0, 0, 0);
-        } else if (period === 'month') {
-            startDate.setMonth(startDate.getMonth() - 1);
-            startDate.setHours(0, 0, 0, 0);
-        }
+        if (period === 'day') startDate.setHours(0, 0, 0, 0);
+        else if (period === 'week') startDate.setDate(startDate.getDate() - 7);
+        else if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
 
         const { data: orders, error } = await supabase
             .from('orders')
             .select('items, totalPrice, created_at, user_id, users(name, studentId)')
             .gte('created_at', startDate.toISOString())
-            .in('status', ['جاهز للاستلام', 'قيد التحضير']); // Only count completed/in-progress orders
+            .in('status', ['جاهز للاستلام', 'قيد التحضير']);
 
         if (error) throw error;
 
-        // 1. Top Selling Items
         const itemCounts = {};
-        orders.forEach(order => {
-            order.items.forEach(item => {
-                itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
-            });
-        });
-        const topItems = Object.entries(itemCounts)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 5)
-            .map(([name, count]) => ({ name, count }));
+        orders.forEach(order => order.items.forEach(item => {
+            itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+        }));
+        const topItems = Object.entries(itemCounts).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, count]) => ({ name, count }));
 
-        // 2. Top Customers
         const customerSpending = {};
         orders.forEach(order => {
-            const customerName = order.users.name || `User ${order.user_id}`;
+            const customerName = order.users?.name || `User ${order.user_id}`;
             customerSpending[customerName] = (customerSpending[customerName] || 0) + parseFloat(order.totalPrice);
         });
-        const topCustomers = Object.entries(customerSpending)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 5)
-            .map(([name, total]) => ({ name, total: total.toFixed(2) }));
+        const topCustomers = Object.entries(customerSpending).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, total]) => ({ name, total: total.toFixed(2) }));
             
-        // 3. Peak Hours
         const hourCounts = Array(24).fill(0);
-        orders.forEach(order => {
-            const hour = new Date(order.created_at).getHours();
-            hourCounts[hour]++;
-        });
+        orders.forEach(order => { const hour = new Date(order.created_at).getHours(); hourCounts[hour]++; });
         const peakHours = hourCounts.map((count, hour) => ({ hour, count })).sort((a,b) => b.count - a.count);
 
-        // 4. Total Revenue
         const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.totalPrice), 0);
         
         res.status(200).json({
@@ -345,13 +424,49 @@ router.get('/analytics', dashboardAuthCheck, async (req, res) => {
             topCustomers,
             peakHours,
         });
-
     } catch (error) {
         console.error('Analytics Error:', error.message);
         res.status(500).json({ error: "Failed to fetch analytics." });
     }
 });
 
+
+// --- Helper Function to Send Notification ---
+async function sendNotification(userId, payload) {
+    if (!vapidPublicKey) return; // Don't try if keys aren't set
+
+    try {
+        // Find all subscriptions for the given user
+        const { data: subscriptions, error } = await supabase
+            .from('push_subscriptions')
+            .select('subscription')
+            .eq('user_id', userId);
+
+        if (error || !subscriptions) throw new Error('No subscriptions found.');
+
+        const notificationPayload = JSON.stringify(payload);
+
+        // Send a notification to each subscription
+        const promises = subscriptions.map(sub => 
+            webpush.sendNotification(sub.subscription, notificationPayload)
+                .catch(err => {
+                    if (err.statusCode === 410) {
+                        // 410 Gone: Subscription is no longer valid. Remove it.
+                        return supabase
+                            .from('push_subscriptions')
+                            .delete()
+                            .eq('subscription->>endpoint', sub.subscription.endpoint);
+                    } else {
+                        console.error('Failed to send push notification:', err.message);
+                    }
+                })
+        );
+        await Promise.all(promises);
+
+    } catch (error) {
+        console.error('Error sending notification:', error.message);
+    }
+}
 
 module.exports = router;
 
