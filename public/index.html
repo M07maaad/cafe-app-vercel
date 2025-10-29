@@ -49,8 +49,6 @@
         margin: auto;
     }
     .hidden { display: none !important; }
-
-    /* --- General & Auth Styles --- */
     .logo { 
       font-family: var(--header-font);
       font-size: 4em; 
@@ -104,8 +102,6 @@
     }
     .auth-toggle { color: var(--primary-yellow); cursor: pointer; margin-top: 20px; display: inline-block; font-weight: 500; }
     .auth-error { color: var(--primary-red); min-height: 20px; font-weight: 700; }
-
-    /* --- App Header --- */
     .app-header {
       background: var(--dark-bg);
       padding: 15px;
@@ -149,8 +145,6 @@
         cursor: pointer;
     }
     .theme-toggle-btn svg { width: 20px; height: 20px; }
-
-    /* --- Desktop Action Bar --- */
     .desktop-action-bar { display: flex; justify-content: center; gap: 10px; margin: 25px 0; flex-wrap: wrap; }
     .action-btn { 
       position: relative; 
@@ -172,8 +166,6 @@
     }
     .action-btn.cart { background: var(--primary-yellow); color: var(--text-dark); border: none;}
     .action-count { position: absolute; top: -8px; right: -8px; background: var(--primary-red); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: 600; }
-    
-    /* --- Search Bar --- */
     .search-container { position: relative; max-width: 800px; margin: 30px auto; padding: 0 15px; }
     #search-input { 
       width: 100%; 
@@ -196,8 +188,6 @@
         height: 20px;
         stroke: #888;
     }
-
-    /* --- Menu & Categories --- */
     #categories-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
     .category-card { 
       background-color: var(--card-bg); 
@@ -220,12 +210,10 @@
     }
     .category-card-icon { font-size: 3em; line-height: 1; z-index: 1; }
     .category-card-title { color: var(--text-light); font-size: 1.4em; font-weight: 700; text-align: center; z-index: 1;}
-    
     .menu-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin: 30px 0 25px 0; position: relative;}
     .menu-header::after { content: ''; position: absolute; bottom: 0; right: 0; width: 100px; height: 3px; background: var(--primary-yellow); box-shadow: 0 0 10px var(--primary-yellow); }
     .category-title { font-family: var(--header-font); font-weight: 700; font-size: 2.2em; color: var(--text-light); }
     .back-btn { background: var(--card-bg); color: var(--text-light); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 50px; cursor: pointer; font-weight: 700; }
-    
     .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
     .item-card { 
       background: var(--card-bg); 
@@ -241,9 +229,7 @@
     .item-price { font-size: 1.3em; font-weight: 800; color: var(--primary-yellow); margin: 5px 0 0 0; }
     .add-to-cart-btn { background: var(--primary-red); color: white; border-radius: 4px; padding: 10px 20px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; }
     .add-to-cart-btn:hover { filter: brightness(1.2); }
-
-    /* --- Modals & Overlays --- */
-    .modal-overlay { 
+    .modal-overlay, .side-panel-overlay { 
       position: fixed; top: 0; left: 0; 
       width: 100%; height: 100%; 
       background: rgba(0,0,0,0.7); 
@@ -255,12 +241,8 @@
       align-items: center;
     }
     .side-panel-overlay {
-      position: fixed; top: 0; left: 0; 
-      width: 100%; height: 100%; 
-      background: rgba(0,0,0,0.7); 
-      backdrop-filter: blur(5px);
-      z-index: 1001; opacity: 0; transition: opacity 0.3s ease;
-      pointer-events: none;
+      justify-content: initial; 
+      align-items: initial;
     }
     .modal-overlay.show, .side-panel-overlay.open { opacity: 1; pointer-events: all; }
     .modal-content { 
@@ -277,15 +259,13 @@
     .close-modal {
         position: absolute;
         top: 10px;
-        left: 15px; /* RTL positioning */
+        left: 15px;
         cursor: pointer;
         font-size: 1.8em;
         color: #aaa;
         line-height: 1;
         z-index: 10;
     }
-    
-    /* --- Side Panel --- */
     .side-panel {
         position: fixed;
         top: 0;
@@ -339,7 +319,6 @@
         font-weight: 700;
     }
     .side-panel-logout-btn svg { width: 20px; height: 20px; stroke: white; }
-    
     #cart-items-list li, #history-items-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
     .remove-item-btn { background: none; border: none; color: var(--primary-red); font-size: 1.4em; cursor: pointer; }
     .status-ready { color: #28a745; }
@@ -353,8 +332,6 @@
     #payment-confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 2000; display: none; justify-content: center; align-items: center; text-align: center; flex-direction: column; color: white; }
     .spinner { border: 8px solid rgba(255,255,255,0.2); border-top: 8px solid var(--primary-yellow); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 25px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
-    /* --- MOBILE NAVIGATION BAR --- */
     .mobile-nav {
         display: none;
         position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
@@ -369,7 +346,6 @@
     .mobile-nav-btn.cart-nav { transform: translateY(-20px); background: var(--primary-yellow); border-radius: 50%; width: 60px; height: 60px; box-shadow: 0 0 20px rgba(253, 203, 1, 0.4); border: 2px solid var(--dark-bg); }
     .mobile-nav-btn.cart-nav svg { stroke: var(--text-dark); }
     .mobile-nav-btn.cart-nav .action-count { position: absolute; top: 0px; right: 0px; }
-
     @media (max-width: 768px) { 
         .desktop-action-bar { display: none; }
         .mobile-nav { display: flex; }
@@ -381,6 +357,7 @@
   </style>
 </head>
 <body>
+  <!-- HTML Body remains 100% unchanged -->
   <div id="payment-confirm-overlay"><div class="spinner"></div><h2>جاري تأكيد الدفع...</h2></div>
   <div id="auth-view">
     <div class="container">
@@ -393,7 +370,6 @@
         </div>
     </div>
   </div>
-
   <div id="app-view" class="hidden">
     <header class="app-header">
         <div class="header-content">
@@ -424,8 +400,6 @@
           <div id="menu-container" class="hidden"></div>
         </main>
     </div>
-    
-    <!-- Mobile Navigation -->
     <nav class="mobile-nav">
         <button class="mobile-nav-btn" onclick="displayCategories()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
@@ -449,12 +423,9 @@
         </button>
     </nav>
   </div>
-
-  <!-- Modals & Side Panel -->
   <div id="cart-modal-overlay" class="modal-overlay" onclick="toggleModal('cart-modal-overlay')"><div class="modal-content" onclick="event.stopPropagation()"><span class="close-modal" onclick="toggleModal('cart-modal-overlay')">&times;</span><h2>سلة الطلبات</h2><textarea id="order-notes" class="modal-input" placeholder="أي ملاحظات للشيف؟ (اختياري)"></textarea><ul id="cart-items-list" style="list-style: none; padding: 0;"></ul><div id="total-price">الإجمالي: 0.00 جنيه</div><button id="order-btn" class="modal-btn" onclick="placeWalletOrder()">اطلب الآن من المحفظة</button><button id="paymob-order-btn" class="modal-btn" style="background:#007bff;" onclick="initiateCardPayment()">ادفع بالبطاقة البنكية</button></div></div>
   <div id="tracking-modal-overlay" class="modal-overlay" onclick="toggleModal('tracking-modal-overlay')"><div class="modal-content" onclick="event.stopPropagation()"><span class="close-modal" onclick="toggleModal('tracking-modal-overlay')">&times;</span><h3>تتبع طلبك</h3><input type="text" id="order-id-input" class="modal-input" style="text-align: center;" placeholder="أدخل رقم الطلب هنا"><button class="modal-btn" style="background:#17a2b8" onclick="trackMyOrder()">تتبع</button><p id="tracking-result"></p></div></div>
   <div id="history-modal-overlay" class="modal-overlay" onclick="toggleModal('history-modal-overlay')"><div class="modal-content" onclick="event.stopPropagation()"><span class="close-modal" onclick="toggleModal('history-modal-overlay')">&times;</span><h2>سجل الطلبات</h2><ul id="history-items-list" style="list-style: none; padding: 0;"></ul></div></div>
-  
   <div id="side-panel-overlay" class="side-panel-overlay" onclick="closeSidePanel()"></div>
   <div id="side-panel" class="side-panel">
       <h2 class="side-panel-header">حسابي</h2>
@@ -477,7 +448,6 @@
           <span>تسجيل الخروج</span>
       </button>
   </div>
-  
   <div class="footer-wrapper" style="text-align: center; padding: 20px; color: #555;"><p>Developed By 7MAD</p></div>
 
 <script>
@@ -529,8 +499,6 @@
   }
 
   // --- PWA & PUSH NOTIFICATION LOGIC ---
-
-  // Helper function to convert VAPID key
   function urlBase64ToUint8Array(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
       const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -550,10 +518,7 @@
       try {
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('ServiceWorker registration successful:', registration.scope);
-          
-          // After SW is registered, ask for notification permission
           askForNotificationPermission(registration);
-
       } catch (err) {
           console.log('ServiceWorker registration failed:', err);
       }
@@ -564,7 +529,6 @@
           console.log('Push Notifications not supported.');
           return;
       }
-      
       const permission = await window.Notification.requestPermission();
       if (permission === 'granted') {
           console.log('Notification permission granted.');
@@ -576,16 +540,11 @@
 
   async function subscribeUserToPush(registration) {
       try {
-          // Check if a subscription already exists
           let existingSubscription = await registration.pushManager.getSubscription();
           if (existingSubscription) {
               console.log('User is already subscribed.');
-              // Optional: You might want to re-send subscription to your server
-              // await apiCall('subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ subscription: existingSubscription }) });
               return;
           }
-          
-          // Get VAPID public key from server
           const { publicKey } = await apiCall('vapid-public-key');
           const applicationServerKey = urlBase64ToUint8Array(publicKey);
           
@@ -595,17 +554,17 @@
           });
           
           console.log('New subscription acquired:', subscription);
-          
-          // Send the new subscription to the server
           await apiCall('subscribe', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ subscription })
           });
           console.log('Subscription sent to server.');
-          
       } catch (error) {
+          // *** THIS IS THE CRITICAL CHANGE ***
+          // Show a user-friendly alert instead of a silent console error
           console.error('Failed to subscribe to push notifications:', error);
+          alert(`فشل الاشتراك في الإشعارات: ${error.message}. قد تكون متغيرات VAPID غير مضافة على الخادم.`);
       }
   }
 
@@ -613,22 +572,15 @@
       try {
           const registration = await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
-          if (!subscription) {
-              return;
-          }
-          
-          // Unsubscribe locally
+          if (!subscription) return;
           await subscription.unsubscribe();
           console.log('Unsubscribed locally.');
-          
-          // Send unsubscription info to the server
           await apiCall('unsubscribe', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ endpoint: subscription.endpoint })
           });
           console.log('Unsubscription sent to server.');
-          
       } catch (error) {
           console.error('Failed to unsubscribe:', error);
       }
@@ -673,7 +625,7 @@
   }
 
   async function handleLogout() { 
-      await unsubscribeUserFromPush(); // Unsubscribe from notifications on logout
+      await unsubscribeUserFromPush();
       closeSidePanel();
       localStorage.removeItem('sessionToken'); 
       showAuthView(); 
@@ -683,7 +635,7 @@
       authView.classList.add('hidden'); 
       appView.classList.remove('hidden'); 
       initializeApp(); 
-      registerServiceWorker(); // Register SW & ask for push permission on app view
+      registerServiceWorker();
   }
   function toggleAuthView() { document.getElementById('login-container').classList.toggle('hidden'); document.getElementById('signup-container').classList.toggle('hidden'); }
 
