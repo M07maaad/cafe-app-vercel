@@ -1,13 +1,14 @@
 {
-  "name": "chilli-app-vercel",
+  "name": "bella-vita-api",
   "version": "1.0.0",
   "main": "index.js",
-  "description": "Chilli Cafeteria App on Vercel",
+  "description": "API for Bella Vita ordering app on Vercel",
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",
     "axios": "^1.5.1",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
     "web-push": "^3.6.7"
   }
 }
+
