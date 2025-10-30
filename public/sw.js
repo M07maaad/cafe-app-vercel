@@ -3,6 +3,8 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icon-192.png', // <-- السطر ده جديد
+  '/icon-512.png', // <-- السطر ده جديد
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&family=Tajawal:wght@400;500;700;800&display=swap'
   // سنضيف الأيقونات الحقيقية هنا لاحقًا
 ];
