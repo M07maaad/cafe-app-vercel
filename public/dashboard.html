@@ -19,6 +19,7 @@
             --success: #28a745;
             --danger: #e74c3c;
             --blue: #3498db;
+            --pulse-color: #00CFE8; /* Cyan pulse color */
         }
 
         body { 
@@ -57,7 +58,26 @@
         #wallet-message.error { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
         
         #orders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
-        .order-card { background: var(--card-bg); border-radius: 4px; box-shadow: 0 4px 12px var(--shadow-color); padding: 20px; border-top: 5px solid var(--primary-yellow); }
+        .order-card { 
+            background: var(--card-bg); 
+            border-radius: 4px; 
+            box-shadow: 0 4px 12px var(--shadow-color); 
+            padding: 20px; 
+            border-top: 5px solid var(--primary-yellow); 
+            transition: all 0.3s ease;
+        }
+        /* --- NEW ORDER HIGHLIGHT --- */
+        .order-card.new-order {
+            border-top-color: var(--pulse-color);
+            animation: pulse 1.5s 2;
+        }
+        @keyframes pulse { 
+            0% { box-shadow: 0 4px 12px var(--shadow-color), 0 0 0 0 rgba(0, 207, 232, 0.7); } 
+            70% { box-shadow: 0 4px 12px var(--shadow-color), 0 0 0 20px rgba(0, 207, 232, 0); } 
+            100% { box-shadow: 0 4px 12px var(--shadow-color), 0 0 0 0 rgba(0, 207, 232, 0); } 
+        }
+        /* --- END HIGHLIGHT --- */
+
         .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
         .order-id { font-size: 1.6em; font-weight: 800; }
         .items-list { list-style: none; padding: 0; margin: 15px 0; }
@@ -87,7 +107,7 @@
         .modal-overlay.show { display: flex; }
         .modal-content { background: var(--card-bg); padding: 25px; border-radius: 4px; width: 90%; max-width: 400px; border: 1px solid var(--border-color); }
         .modal-content h3 { margin-top: 0; }
-        .modal-content input { width: 100%; box-sizing: border-box; }
+        .modal-content input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--dark-bg); color: var(--text-light); }
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn { flex-grow: 1; }
     </style>
@@ -125,6 +145,9 @@
             </div>
 
             <div id="orders-section" class="tab-content dashboard-section active">
+                 <div class="section-header" style="justify-content: flex-end;">
+                     <div class="stats">إجمالي الطلبات: <span id="order-count">0</span></div>
+                </div>
                  <div id="orders-container">
                     <p id="no-orders-msg">لا توجد طلبات قيد التحضير حاليًا...</p>
                 </div>
@@ -133,7 +156,7 @@
             <div id="analytics-section" class="tab-content dashboard-section">
                 <h2>نظرة عامة على الأداء</h2>
                 <div class="analytics-filters">
-                    <button class="filter-btn" data-period="day" onclick="loadAnalytics('day', this)">آخر 24 ساعة</button>
+                    <button class="filter-btn active" data-period="day" onclick="loadAnalytics('day', this)">آخر 24 ساعة</button>
                     <button class="filter-btn" data-period="week" onclick="loadAnalytics('week', this)">آخر 7 أيام</button>
                     <button class="filter-btn" data-period="month" onclick="loadAnalytics('month', this)">آخر 30 يوم</button>
                 </div>
@@ -155,7 +178,7 @@
     <div id="reject-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>سبب رفض الطلب</h3>
-            <input type="text" id="reject-reason-input" class="form-group input" placeholder="مثال: الصنف غير متوفر">
+            <input type="text" id="reject-reason-input" class="form-group" placeholder="مثال: الصنف غير متوفر">
             <div class="modal-actions">
                 <button class="action-btn" style="background: #888;" onclick="closeRejectModal()">إلغاء</button>
                 <button class="action-btn reject" id="confirm-reject-btn">تأكيد الرفض</button>
@@ -175,12 +198,14 @@
             if (!password) { window.location.href = 'dashboard-login.html'; return; }
             
             fetchOrders();
-            setInterval(fetchOrders, 15000);
+            setInterval(fetchOrders, 10000); // Check for orders every 10 seconds
             loadAnalytics('day', document.querySelector('.filter-btn[data-period="day"]'));
         });
         
         function showTab(tabName) {
-            document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
             document.getElementById(`${tabName}-section`).classList.add('active');
             event.currentTarget.classList.add('active');
         }
@@ -223,38 +248,6 @@
         }
 
         // --- Wallet Logic ---
-        async function findStudent() { /* ... function code ... */ }
-        async function chargeWallet() { /* ... function code ... */ }
-        
-        // --- Orders Logic ---
-        async function fetchOrders() { /* ... function code ... */ }
-        function renderOrders(orders) { /* ... function code ... */ }
-        
-        // --- Reject Modal Logic ---
-        function openRejectModal(orderId) {
-            const modal = document.getElementById('reject-modal');
-            modal.classList.add('show');
-            document.getElementById('confirm-reject-btn').onclick = () => confirmReject(orderId);
-        }
-        function closeRejectModal() {
-            document.getElementById('reject-modal').classList.remove('show');
-            document.getElementById('reject-reason-input').value = '';
-        }
-        function confirmReject(orderId) {
-            const reason = document.getElementById('reject-reason-input').value.trim();
-            if (!reason) {
-                alert("الرجاء إدخال سبب الرفض.");
-                return;
-            }
-            handleOrderAction('/api/reject-order', { orderId, reason }, 'فشل رفض الطلب.');
-            closeRejectModal();
-        }
-
-        async function handleOrderAction(endpoint, body, errorMessage) { /* ... function code ... */ }
-        function removeCardFromUI(orderId) { /* ... function code ... */ }
-        function playNotificationSound() { /* ... function code ... */ }
-
-        // --- Paste full function implementations here ---
         async function findStudent() {
             const studentId = document.getElementById('student-id-search').value.trim();
             const resultDiv = document.getElementById('wallet-result');
@@ -300,6 +293,8 @@
                 messageDiv.className = 'error';
             }
         }
+        
+        // --- Orders Logic (SMART UPDATE) ---
         async function fetchOrders() {
             try {
                 const response = await fetch('/api/all-orders', { headers: { 'Authorization': `Bearer ${password}` } });
@@ -308,24 +303,45 @@
                 renderOrders(orders);
             } catch (error) { console.error(error); }
         }
+
         function renderOrders(orders) {
             const ordersContainer = document.getElementById('orders-container');
             const noOrdersMsg = document.getElementById('no-orders-msg');
-            noOrdersMsg.style.display = orders.length === 0 ? 'block' : 'none';
-            if (orders.length > 0) noOrdersMsg.style.display = 'none'; else noOrdersMsg.style.display = 'block';
+            const orderCountEl = document.getElementById('order-count');
 
-            const newOrderIds = new Set(orders.map(o => o.display_id));
-            if (newOrderIds.size > currentOrderIds.size && document.hidden === false) playNotificationSound();
+            orderCountEl.textContent = orders.length;
+            if (orders.length === 0) {
+                ordersContainer.innerHTML = ''; // Clear container
+                noOrdersMsg.style.display = 'block';
+                ordersContainer.appendChild(noOrdersMsg);
+            } else {
+                noOrdersMsg.style.display = 'none';
+            }
             
-            ordersContainer.innerHTML = ''; // Clear and re-render
-            if (orders.length === 0) ordersContainer.appendChild(noOrdersMsg);
+            const newOrderIds = new Set(orders.map(o => o.display_id));
+            let hasNewOrder = false;
 
+            // 1. Remove orders that are no longer in the list (completed/rejected)
+            document.querySelectorAll('.order-card').forEach(card => {
+                if (!newOrderIds.has(card.dataset.orderId)) {
+                    card.remove();
+                }
+            });
 
+            // 2. Add new orders
             orders.forEach(order => {
+                // Check if this order is already on screen
+                if (document.querySelector(`.order-card[data-order-id='${order.display_id}']`)) {
+                    return; // Already exists, do nothing
+                }
+
+                // --- This is a NEW order ---
+                hasNewOrder = true;
                 const card = document.createElement('div');
-                card.className = 'order-card';
+                card.className = 'order-card new-order'; // Add highlight
                 card.dataset.orderId = order.display_id;
                 const itemsHtml = order.items.map(item => `<li><span>${item.name}</span><span class="item-quantity">x${item.quantity}</span></li>`).join('');
+                
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="order-id">${order.display_id}</span>
@@ -338,10 +354,21 @@
                         <button class="action-btn reject" onclick="openRejectModal('${order.display_id}')">رفض</button>
                         <button class="action-btn ready" onclick="handleOrderAction('/api/update-order-status', { orderId: '${order.display_id}', status: 'جاهز للاستلام' }, 'فشل تحديث حالة الطلب.')">جاهز للاستلام</button>
                     </div>`;
-                ordersContainer.prepend(card);
+                
+                ordersContainer.prepend(card); // Add new orders to the top
+                setTimeout(() => {
+                    card.classList.remove('new-order');
+                }, 4000); // Remove pulse after 4 seconds
             });
+
+            if (hasNewOrder && document.hidden === false) {
+                playNotificationSound();
+            }
+            
+            // Update the set of current IDs for the next check
             currentOrderIds = newOrderIds;
         }
+
         async function handleOrderAction(endpoint, body, errorMessage) {
             try {
                 const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` }, body: JSON.stringify(body) });
@@ -352,13 +379,19 @@
                 alert(error.message);
             }
         }
+        
         function removeCardFromUI(orderId) {
             const card = document.querySelector(`.order-card[data-order-id='${orderId}']`);
             if (card) card.remove();
-            if (document.querySelectorAll('.order-card').length === 0) {
+            
+            currentOrderIds.delete(orderId); // Remove from our set
+            const remainingCards = document.querySelectorAll('.order-card').length;
+            document.getElementById('order-count').textContent = remainingCards;
+            if (remainingCards === 0) {
                  document.getElementById('no-orders-msg').style.display = 'block';
             }
         }
+        
         function playNotificationSound() {
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
@@ -371,6 +404,26 @@
             gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // --- Reject Modal Logic ---
+        function openRejectModal(orderId) {
+            const modal = document.getElementById('reject-modal');
+            modal.classList.add('show');
+            document.getElementById('confirm-reject-btn').onclick = () => confirmReject(orderId);
+        }
+        function closeRejectModal() {
+            document.getElementById('reject-modal').classList.remove('show');
+            document.getElementById('reject-reason-input').value = '';
+        }
+        function confirmReject(orderId) {
+            const reason = document.getElementById('reject-reason-input').value.trim();
+            if (!reason) {
+                alert("الرجاء إدخال سبب الرفض.");
+                return;
+            }
+            handleOrderAction('/api/reject-order', { orderId, reason }, 'فشل رفض الطلب.');
+            closeRejectModal();
         }
     </script>
 </body>
