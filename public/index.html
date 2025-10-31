@@ -10,6 +10,13 @@
   <!-- PWA: Theme Color for Address Bar -->
   <meta name="theme-color" content="#121212"> 
   
+  <!-- === التعديل المطلوب لضمان ظهور الأيقونة === -->
+  <!-- Favicon لجميع المتصفحات -->
+  <link rel="icon" href="/icon-192.png" type="image/png">
+  <!-- أيقونة لآبل (آيفون وآيباد) -->
+  <link rel="apple-touch-icon" href="/icon-180.png">
+  <!-- ======================================= -->
+  
   <title>Bélla Vita - Nexus</title>
   <style>
     /* --- CSS REMAINS 100% UNCHANGED --- */
@@ -277,7 +284,7 @@
     .close-modal {
         position: absolute;
         top: 10px;
-        left: 15px; /* RTL positioning */
+        left: 15px;
         cursor: pointer;
         font-size: 1.8em;
         color: #aaa;
@@ -529,8 +536,6 @@
   }
 
   // --- PWA & PUSH NOTIFICATION LOGIC ---
-
-  // Helper function to convert VAPID key
   function urlBase64ToUint8Array(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
       const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -543,49 +548,30 @@
   }
 
   async function registerServiceWorker() {
-      if (!('serviceWorker' in navigator)) {
-          console.log('Service Worker not supported.');
-          return;
-      }
+      if (!('serviceWorker' in navigator)) { console.log('Service Worker not supported.'); return; }
       try {
           const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('ServiceWorker registration successful:', registration.scope);
-          
-          // After SW is registered, ask for notification permission
           askForNotificationPermission(registration);
-
-      } catch (err) {
-          console.log('ServiceWorker registration failed:', err);
-      }
+      } catch (err) { console.log('ServiceWorker registration failed:', err); }
   }
 
   async function askForNotificationPermission(registration) {
-      if (!('PushManager' in window)) {
-          console.log('Push Notifications not supported.');
-          return;
-      }
-      
-      const permission = await window.Notification.requestPermission();
-      if (permission === 'granted') {
-          console.log('Notification permission granted.');
-          await subscribeUserToPush(registration);
-      } else {
-          console.log('Notification permission denied.');
-      }
+      if (!('PushManager' in window)) { console.log('Push Notifications not supported.'); return; }
+      try {
+          const permission = await window.Notification.requestPermission();
+          if (permission === 'granted') {
+              console.log('Notification permission granted.');
+              await subscribeUserToPush(registration);
+          } else { console.log('Notification permission denied.'); }
+      } catch (error) { console.error('Error requesting notification permission:', error); }
   }
 
   async function subscribeUserToPush(registration) {
       try {
-          // Check if a subscription already exists
           let existingSubscription = await registration.pushManager.getSubscription();
-          if (existingSubscription) {
-              console.log('User is already subscribed.');
-              // Optional: You might want to re-send subscription to your server
-              // await apiCall('subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ subscription: existingSubscription }) });
-              return;
-          }
+          if (existingSubscription) { console.log('User is already subscribed.'); return; }
           
-          // Get VAPID public key from server
           const { publicKey } = await apiCall('vapid-public-key');
           const applicationServerKey = urlBase64ToUint8Array(publicKey);
           
@@ -593,19 +579,12 @@
               userVisibleOnly: true,
               applicationServerKey: applicationServerKey
           });
-          
           console.log('New subscription acquired:', subscription);
-          
-          // Send the new subscription to the server
-          await apiCall('subscribe', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ subscription })
-          });
+          await apiCall('subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ subscription }) });
           console.log('Subscription sent to server.');
-          
       } catch (error) {
           console.error('Failed to subscribe to push notifications:', error);
+          // تم إزالة الـ alert من هنا لضمان تجربة مستخدم أفضل
       }
   }
 
@@ -613,25 +592,12 @@
       try {
           const registration = await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
-          if (!subscription) {
-              return;
-          }
-          
-          // Unsubscribe locally
+          if (!subscription) return;
           await subscription.unsubscribe();
           console.log('Unsubscribed locally.');
-          
-          // Send unsubscription info to the server
-          await apiCall('unsubscribe', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ endpoint: subscription.endpoint })
-          });
+          await apiCall('unsubscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ endpoint: subscription.endpoint }) });
           console.log('Unsubscription sent to server.');
-          
-      } catch (error) {
-          console.error('Failed to unsubscribe:', error);
-      }
+      } catch (error) { console.error('Failed to unsubscribe:', error); }
   }
 
   // --- Initial Load & Auth ---
@@ -673,7 +639,7 @@
   }
 
   async function handleLogout() { 
-      await unsubscribeUserFromPush(); // Unsubscribe from notifications on logout
+      await unsubscribeUserFromPush();
       closeSidePanel();
       localStorage.removeItem('sessionToken'); 
       showAuthView(); 
@@ -683,7 +649,7 @@
       authView.classList.add('hidden'); 
       appView.classList.remove('hidden'); 
       initializeApp(); 
-      registerServiceWorker(); // Register SW & ask for push permission on app view
+      registerServiceWorker();
   }
   function toggleAuthView() { document.getElementById('login-container').classList.toggle('hidden'); document.getElementById('signup-container').classList.toggle('hidden'); }
 
@@ -706,7 +672,7 @@
     }
   }
 
-  // --- UI Rendering Functions (No changes) ---
+  // --- UI Rendering Functions ---
   function displayCategories() {
     const container = document.getElementById('categories-container');
     container.innerHTML = '';
@@ -774,7 +740,7 @@
     showCategoryItems(`نتائج البحث عن: "${searchTerm}"`, results);
   }
 
-  // --- Cart Logic (No changes) ---
+  // --- Cart Logic ---
   function addToCart(event, itemName, itemPrice) {
     event.stopPropagation();
     if (cart[itemName]) {
@@ -815,7 +781,7 @@
     document.querySelectorAll('#order-btn, #paymob-order-btn').forEach(b => b.disabled = totalItems === 0);
   }
 
-  // --- Order Placement (No changes) ---
+  // --- Order Placement ---
   async function placeWalletOrder() {
     if (Object.keys(cart).length === 0) return;
     document.querySelectorAll('.modal-btn').forEach(b => b.disabled = true);
@@ -851,7 +817,7 @@
     }
   }
 
-  // --- Modals Logic (No changes) ---
+  // --- Modals Logic ---
   function toggleModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
